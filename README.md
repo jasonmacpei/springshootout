@@ -1,2 +1,2 @@
-# springshootour
+# springshootout
 My springshootout division.
