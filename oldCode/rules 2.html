@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spring Shootout</title>
+  <!-- Bootstrap CSS for styling -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
+  <!-- Custom stylesheet -->
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    body {
+      color: white;
+    }
+    .rules-heading {
+      /* Removed align-items (not needed for non-flex containers) */
+      text-align: left;
+      color: white;
+      font-size: 1.5em;
+      margin-top: 20px;
+    }
+    .rule-body {
+      margin-bottom: 20px;
+    }
+    ol {
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <!-- NavBar -->
+  <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark justify-content-center">
+      <div id="nav-placeholder">
+        <!-- The static navbar HTML will be loaded dynamically into the nav-placeholder div -->
+      </div>
+    </nav>
+  </div>
+  
+  <!-- Poster Logo Header -->
+  <div class="poster">
+    <img src="../assets/images/name.png" alt="Spring Shootout">
+  </div>
+
+  <div style="padding-top: 40px;">
+    <hr>
+  </div>
+
+  <!-- Tournament Format Section -->
+  <div class="rules-heading">Tournament Format</div>
+  <div class="rule-body">
+    Games will count no more than a 20-point difference. The difference will be applied to the losing team's score.
+    For example, if a game's actual score is 60-30, the game will be recorded as 50-30 (a 20-point difference). 
+    Division winners will be determined by the number of wins.
+  </div>
+  
+  <!-- Standings Tie Breakers Section -->
+  <div class="rules-heading">Standings Tie Breakers</div>
+  <ol>
+    <li>The first tie-breaker is the head-to-head record.</li>
+    <li>The second tie-breaker is the plus-minus statistic.</li>
+    <li>The third tie-breaker is points against.</li>
+    <li>The fourth tie-breaker is to flip a coin.</li>
+  </ol>
+  
+  <!-- Game Rules Section -->
+  <div class="rules-heading">Game Rules</div>
+  <div class="rule-body">
+    Rules will default to FIBA rules.
+  </div>
+  
+  <!-- All Divisions Rules -->
+  <div class="rules-heading">All Divisions</div>
+  <ol>
+    <!-- Consolidated duplicate defense rule into one -->
+    <li>
+      Defense – Man-to-man only; no double-teaming away from the ball, and no zone defense. All players on the ball or on the ball side must be closely guarded.
+      Players on the weak side may play help-side defense.
+      If the referee determines there is intent to play a zone defense or double-team away from the ball, the following penalties shall be assessed:
+      on the first offense, play shall be stopped and a warning issued to the coach; on the second and any subsequent offense, the offensive team shall be awarded one free throw and possession at the point of interruption.
+    </li>
+    <li>
+      You may double team the ball - while the game is within 20 points.  No double-teaming the ball with a game score spread bigger then 20.
+    </li>
+    <li>
+      Full-court man-to-man defense is allowed unless the game spread is 20 points or more; in that case, only half-court defense is permitted.
+    </li>
+    <li>
+      Halftime will be 2 minutes.
+    </li>
+    <li>
+      Games are 5-on-5.
+    </li>
+    <li>
+      Games will be played in four 8-minute quarters.
+    </li>
+    <li>
+      Games will be played on a 10-foot hoop.
+    </li>
+    <li>
+      Standard basketball substitutions will be used; no "shift" type substitutions are allowed.
+    </li>
+    <li>
+      Two timeouts are allowed per half. If the game goes into overtime, only one additional timeout is allowed; no further timeouts will be granted for additional overtime periods.
+    </li>
+    <li>
+      Overtime will consist of two minutes of stop-time play. One timeout is allowed during overtime. At the end of the first overtime, if the score remains tied, the game will proceed to sudden death.
+    </li>
+    <!-- 
+      Note: I noticed that the original file repeated the defense and full-court defense rules.
+      I've consolidated them into single entries. Let me know if the duplicate listings were intentional.
+    -->
+  </ol>
+  
+  <!-- u11 and u12 Division Specific Rules -->
+  <div class="rules-heading">U11 and U12 Division Specific</div>
+  <ol>
+    <li>A 27.5-inch ball (Size 5) will be used.</li>
+    <li>Screens away from the ball are allowed; ball screens are not permitted.</li>
+    <li>
+      Playing time will follow standard basketball rules, allowing substitutions at any time.
+      However, it is strongly recommended that every player participates for at least 25% of the game.
+    </li>
+  </ol>
+  
+  <!-- u13 Division Specific Rules -->
+  <div class="rules-heading">U13 Division Specific</div>
+  <ol>
+    <li>A 28.5-inch ball (Size 6) will be used.</li>
+  </ol>
+
+  <!-- jQuery for dynamic content loading -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <!-- Bootstrap JS for Bootstrap components functionality -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <!-- Script to dynamically load the navbar -->
+  <script>
+    $(document).ready(function() {
+      $("#nav-placeholder").load("../includes/navbar.html");
+    });
+  </script>
+</body>
+</html>

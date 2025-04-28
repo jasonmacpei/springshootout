@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Phone Formatting</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="tel"] {
+            width: 100%;
+            padding: 8px;
+            font-size: 16px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        .info {
+            background-color: #e6f7ff;
+            border: 1px solid #91d5ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Phone Number Formatting Test</h1>
+    
+    <div class="info">
+        <p>This page demonstrates how phone number formatting works as you type. Type in the field below to see the formatting in action.</p>
+        <p>The phone will be formatted as: (xxx) xxx-xxxx</p>
+    </div>
+    
+    <div class="container">
+        <div class="form-group">
+            <label for="phone">Phone Number:</label>
+            <input type="tel" id="phone" name="phone" placeholder="Enter phone number (e.g., (416) 555-1234)">
+        </div>
+        
+        <div class="result">
+            <h3>Results:</h3>
+            <div>
+                <strong>Formatted Value:</strong> <span id="formatted-value">-</span>
+            </div>
+            <div>
+                <strong>Raw Input Value:</strong> <span id="raw-value">-</span>
+            </div>
+            <div>
+                <strong>Cleaned Value (digits only):</strong> <span id="cleaned-value">-</span>
+            </div>
+        </div>
+        
+        <h3>Test with pre-defined samples:</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Sample Input</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1234567890</td>
+                    <td><button onclick="fillSample('1234567890')">Test</button></td>
+                </tr>
+                <tr>
+                    <td>(123) 456-7890</td>
+                    <td><button onclick="fillSample('(123) 456-7890')">Test</button></td>
+                </tr>
+                <tr>
+                    <td>123-456-7890</td>
+                    <td><button onclick="fillSample('123-456-7890')">Test</button></td>
+                </tr>
+                <tr>
+                    <td>123.456.7890</td>
+                    <td><button onclick="fillSample('123.456.7890')">Test</button></td>
+                </tr>
+                <tr>
+                    <td>abc123def456ghi7890</td>
+                    <td><button onclick="fillSample('abc123def456ghi7890')">Test</button></td>
+                </tr>
+                <tr>
+                    <td>+1 (123) 456-7890</td>
+                    <td><button onclick="fillSample('+1 (123) 456-7890')">Test</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const phoneInput = document.getElementById('phone');
+            const formattedValue = document.getElementById('formatted-value');
+            const rawValue = document.getElementById('raw-value');
+            const cleanedValue = document.getElementById('cleaned-value');
+            
+            phoneInput.addEventListener('input', updateResults);
+            
+            function updateResults() {
+                // Update result displays
+                formattedValue.textContent = phoneInput.value;
+                rawValue.textContent = phoneInput.value;
+                cleanedValue.textContent = phoneInput.value.replace(/\D/g, '');
+            }
+            
+            phoneInput.addEventListener('input', function(e) {
+                // Get only the digits from the input
+                let digits = this.value.replace(/\D/g, '');
+                
+                // Limit to 10 digits (North American phone number)
+                digits = digits.substring(0, 10);
+                
+                // Format the phone number as the user types
+                let formattedNumber = '';
+                if (digits.length > 0) {
+                    // Format: (xxx)
+                    formattedNumber = '(' + digits.substring(0, 3);
+                    
+                    if (digits.length > 3) {
+                        // Format: (xxx) xxx
+                        formattedNumber += ') ' + digits.substring(3, 6);
+                        
+                        if (digits.length > 6) {
+                            // Format: (xxx) xxx-xxxx
+                            formattedNumber += '-' + digits.substring(6, 10);
+                        }
+                    }
+                }
+                
+                // Update the input value with the formatted number
+                this.value = formattedNumber;
+                
+                // Update result displays
+                updateResults();
+            });
+        });
+        
+        function fillSample(sample) {
+            const phoneInput = document.getElementById('phone');
+            phoneInput.value = sample;
+            
+            // Trigger the input event to apply formatting
+            const event = new Event('input');
+            phoneInput.dispatchEvent(event);
+        }
+    </script>
+</body>
+</html> 

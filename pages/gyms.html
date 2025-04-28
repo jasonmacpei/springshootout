@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spring Shootout</title>
+  <!-- Bootstrap CSS for styling -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
+  <!-- Custom stylesheet -->
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    body{
+      color: white;
+    }
+    .gyms-heading{
+      align-items: left;
+      color: white;
+      font-size: 1.5em;
+    }
+    .gym-body{
+      margin-bottom: 20px;
+    }
+    ol{
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+<!-- NavBar -->
+<div class="container">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark justify-content-center">
+      <div id="nav-placeholder">
+          <!-- The static navbar HTML will be loaded dynamically into the nav-placeholder div -->
+      </div>
+  </nav>
+</div>
+<!-- Poster Logo Header -->
+<div class="poster">
+  <img src="../assets/images/name.png" alt="Spring Shootout">
+</div>
+
+    <div style="padding-top: 40px;">
+      <hr>
+    </div>
+
+  </div>
+  <div class="gyms-heading">UPEI Field House</div>
+  <div class="gym-body">Address:  550 University Ave, Charlottetown, PE C1A 0G9</div>
+  <div class="gym-body">Map Link: <a href="https://maps.app.goo.gl/S3rqe51KgiNECmTQ9">Google Map to UPEI Chi-Wan Young Sports Center</a> </div>
+  <div class="gym-body">Gym Contact: Jason MacDonald</div>
+  <div class="gym-body">Phone: 902-626-1936</div>
+<div style="padding-top: 20px;">
+  <hr>
+</div>
+
+<div class="gyms-heading">Colonel Grey High School</div>
+<div class="gym-body">Address:  175 Spring Park Rd, Charlottetown, PE C1A 2Y8</div>
+<div class="gym-body">Map Link: <a href="https://maps.app.goo.gl/oqBFBLt4oDEoD7DQ9">Google Map to Colonel Gray</a> </div>
+<div class="gym-body">Gym Contact: Jason MacDonald</div>
+<div class="gym-body">Phone: 902-626-1936</div>
+  <div style="padding-top: 20px;">
+    <hr>
+  </div>
+<div class="gyms-heading">Glen Stewart Primary</div>
+<div class="gym-body">Address:  34 Glen Stewart Dr, Stratford, PE C1B 0J9</div>
+<div class="gym-body">Map Link: <a href="https://maps.app.goo.gl/CKEwj1judPZCqvzM7">Google Map to Glen Stewart Primary</a> </div>
+<div class="gym-body">Gym Contact: Chris Sheppard</div>
+<div class="gym-body">Phone: 902-393-6144</div>
+  <div style="padding-top: 20px;">
+    <hr>
+  </div>
+<div class="gyms-heading">Stonepark Jr. High Elemntary</div>
+<div class="gym-body">Address:  50 Pope Ave, Charlottetown, PE C1A 7P5</div>
+<div class="gym-body">Map Link: <a href="https://maps.app.goo.gl/CRHCKp9vhRsvzofz8">Google Map to Stonepark Jr High</a> </div>
+<div class="gym-body">Gym Contact: Chris Huggan</div>
+<div class="gym-body">Phone: 902-330-7195</div>
+<div style="padding-top: 20px;">
+  <hr>
+</div>
+<div class="gyms-heading">Birchwood Jr. High</div>
+<div class="gym-body">Address:  49 Longworth Ave, Charlottetown, PE C1A 5A6</div>
+<div class="gym-body">Map Link: <a href="https://maps.app.goo.gl/YiRAHQYaB5Jq4Bx77">Google Map to Birchwood Jr High</a> </div>
+<div class="gym-body">Gym Contact: Jason MacDonald</div>
+<div class="gym-body">Phone: 902-626-1936</div>
+  <div style="padding-top: 20px;">
+    <hr>
+  </div>
+
+</div>
+    <div class="gyms-heading">Charlottetown Rural Hight School</div>
+    <div class="gym-body">Address:  100 Raiders Rd, Charlottetown, PE C1E 1K6</div>
+    <div class="gym-body">Map Link: <a href="https://maps.app.goo.gl/FBU6gUKxebatbYRL8">Google Map to Charlottetown Rural High</a> </div>
+    <div class="gym-body">Gym Contact: Jason MacDonald</div>
+    <div class="gym-body">Phone: 902-626-1936</div>
+  <div style="padding-top: 20px;">
+    <hr>
+  </div>
+
+  <!-- jQuery for dynamic content loading -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <!-- Bootstrap JS for Bootstrap components functionality -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <!-- Script to dynamically load the navbar -->
+  <script>
+    $(document).ready(function() {
+        $("#nav-placeholder").load("../includes/navbar.html");
+    });
+  </script>
+
+</body>
+</html>

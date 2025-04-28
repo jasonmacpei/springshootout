@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spring Shootout</title>
+  <!-- Bootstrap CSS for styling -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
+  <!-- Custom stylesheet -->
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark justify-content-center">
+  <div id="nav-placeholder"></div>
+
+  <!-- The static navbar HTML is removed because it will be loaded dynamically into the nav-placeholder div -->
+</div>
+</div>
+  <!-- Content of the page -->
+  <div class="poster">
+    <img src="../assets/images/name.png">
+  </div>
+  <div style="padding-top: 40px;">
+    <hr>
+  </div>
+
+  <h1>Media Coming Soon!</h1>
+
+  <!-- jQuery for dynamic content loading -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <!-- Bootstrap JS for Bootstrap components functionality -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <!-- Script to dynamically load the navbar -->
+  <script>
+    $(document).ready(function() {
+        $("#nav-placeholder").load("../includes/navbar.html");
+    });
+  </script>
+
+</body>
+</html>
