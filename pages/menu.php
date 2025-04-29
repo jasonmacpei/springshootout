@@ -85,12 +85,24 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                     <td><a href="./schedule.php" class="btn btn-primary">View Schedule</a></td>
                 </tr>
                 <tr>
+                    <td>Edit Schedule</td>
+                    <td><a href="./edit_schedule.php" class="btn btn-primary">Edit Schedule</a></td>
+                </tr>
+                <tr>
                     <td>Enter Results</td>
                     <td><a href="./enter_results.php" class="btn btn-primary">Enter Results</a></td>
                 </tr>
                 <tr>
                     <td>Edit Results</td>
                     <td><a href="./edit_results.php" class="btn btn-primary">Edit Results</a></td>
+                </tr>
+                <tr>
+                    <td>Manage Pools</td>
+                    <td><a href="./manage_pools.php" class="btn btn-primary">Manage Pools</a></td>
+                </tr>
+                <tr>
+                    <td>Assign Teams to Pools</td>
+                    <td><a href="./assign_pools.php" class="btn btn-primary">Assign Pools</a></td>
                 </tr>
                 <tr>
                     <td>Enter Uniforms</td>

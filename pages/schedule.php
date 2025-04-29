@@ -15,6 +15,7 @@ if ($isAjaxRequest) {
 }
 error_log("Before database call");
 $gymFilter = isset($_GET['gym']) && $_GET['gym'] !== '' ? $_GET['gym'] : null;
+$divisionFilter = isset($_GET['division']) && $_GET['division'] !== '' ? $_GET['division'] : null;
 
 $query = "SELECT s.game_date, s.game_time, h.team_name AS home_team_name, s.home_uniform,
 a.team_name AS away_team_name, s.away_uniform, s.gym, s.game_type
@@ -22,8 +23,21 @@ FROM schedule s
 LEFT JOIN teams h ON s.home_team_id = h.team_id
 LEFT JOIN teams a ON s.away_team_id = a.team_id";
 
+$whereAdded = false;
+
 if ($gymFilter && $gymFilter !== 'All Gyms') {
     $query .= " WHERE s.gym = :gymFilter";
+    $whereAdded = true;
+}
+
+if ($divisionFilter && $divisionFilter !== 'All Divisions') {
+    if ($whereAdded) {
+        $query .= " AND";
+    } else {
+        $query .= " WHERE";
+        $whereAdded = true;
+    }
+    $query .= " s.game_type LIKE :divisionFilter";
 }
 
 $query .= " ORDER BY s.game_date, s.game_time;";
@@ -31,6 +45,11 @@ $stmt = $pdo->prepare($query);
 
 if ($gymFilter && $gymFilter !== 'All Gyms') {
     $stmt->bindParam(':gymFilter', $gymFilter);
+}
+
+if ($divisionFilter && $divisionFilter !== 'All Divisions') {
+    $divisionFilterParam = $divisionFilter . '%';
+    $stmt->bindParam(':divisionFilter', $divisionFilterParam);
 }
 
 try {
@@ -63,12 +82,110 @@ if ($isAjaxRequest) {
 
 error_log("After database call");
 if ($isAjaxRequest) {
-        error_log("Inside isAjaxRequest");
+    error_log("Inside isAjaxRequest");
     header('Content-Type: application/json');
     echo json_encode(['html' => buildScheduleTableBody($scheduleRows)]);
     exit;
 }
 
+// Fetch teams by division and pool for the current year
+try {
+    // Query to get teams for u11 division
+    $u11Stmt = $pdo->prepare("
+        SELECT 
+            t.team_name,
+            p.pool_name
+        FROM 
+            teams t
+        JOIN 
+            team_pools tp ON t.team_id = tp.team_id
+        JOIN 
+            pools p ON tp.pool_id = p.pool_id
+        JOIN 
+            registrations r ON t.team_id = r.team_id
+        WHERE 
+            r.division = 'u11' AND r.year = 2025 AND r.status = 1
+        ORDER BY 
+            p.pool_name, t.team_name
+    ");
+    $u11Stmt->execute();
+    $u11Teams = $u11Stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Group u11 teams by pool
+    $u11Pools = [];
+    foreach ($u11Teams as $team) {
+        if (!isset($u11Pools[$team['pool_name']])) {
+            $u11Pools[$team['pool_name']] = [];
+        }
+        $u11Pools[$team['pool_name']][] = $team['team_name'];
+    }
+    
+    // Query to get teams for u12 division
+    $u12Stmt = $pdo->prepare("
+        SELECT 
+            t.team_name,
+            p.pool_name
+        FROM 
+            teams t
+        JOIN 
+            team_pools tp ON t.team_id = tp.team_id
+        JOIN 
+            pools p ON tp.pool_id = p.pool_id
+        JOIN 
+            registrations r ON t.team_id = r.team_id
+        WHERE 
+            r.division = 'u12' AND r.year = 2025 AND r.status = 1
+        ORDER BY 
+            p.pool_name, t.team_name
+    ");
+    $u12Stmt->execute();
+    $u12Teams = $u12Stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Group u12 teams by pool
+    $u12Pools = [];
+    foreach ($u12Teams as $team) {
+        if (!isset($u12Pools[$team['pool_name']])) {
+            $u12Pools[$team['pool_name']] = [];
+        }
+        $u12Pools[$team['pool_name']][] = $team['team_name'];
+    }
+    
+    // Query to get teams for u13 division
+    $u13Stmt = $pdo->prepare("
+        SELECT 
+            t.team_name,
+            p.pool_name
+        FROM 
+            teams t
+        JOIN 
+            team_pools tp ON t.team_id = tp.team_id
+        JOIN 
+            pools p ON tp.pool_id = p.pool_id
+        JOIN 
+            registrations r ON t.team_id = r.team_id
+        WHERE 
+            r.division = 'u13' AND r.year = 2025 AND r.status = 1
+        ORDER BY 
+            p.pool_name, t.team_name
+    ");
+    $u13Stmt->execute();
+    $u13Teams = $u13Stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Group u13 teams by pool
+    $u13Pools = [];
+    foreach ($u13Teams as $team) {
+        if (!isset($u13Pools[$team['pool_name']])) {
+            $u13Pools[$team['pool_name']] = [];
+        }
+        $u13Pools[$team['pool_name']][] = $team['team_name'];
+    }
+    
+} catch (PDOException $e) {
+    error_log("Error fetching teams by division and pool: " . $e->getMessage());
+    $u11Pools = [];
+    $u12Pools = [];
+    $u13Pools = [];
+}
 
 function buildScheduleTableBody($rows) {
   error_log("Inside Function buildScheduleTableBody");
@@ -150,14 +267,23 @@ error_log("End PHP script");
       }
 .filter-container {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 20px;
     color: white;  /* This will set the label text to white */
 }
 
+.filter-item {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+    margin-bottom: 10px;
+}
+
 .select-label {
     margin-right: 10px;  /* Spacing between label and dropdown */
+    white-space: nowrap;
 }
 
 .select-wrap {
@@ -219,32 +345,60 @@ error_log("End PHP script");
     <hr>
   </div>
 
-<!-- u10 and u12 Division tables, each in their own .table-responsive if necessary -->
+<!-- Division tables, each in their own .table-responsive if necessary -->
 <div class="container my-3">
     <div class="row">
         <div class="col-md-6">
-
-          <h3 class="text-center">u10 Division</h3>
+          <h3 class="text-center">u11 Division</h3>
           <table class="table table-bordered white-text">
-          <thead class="thead-dark">
+            <thead class="thead-dark">
               <tr>
-                <th scope="col">Pool A</th>
-                <th scope="col">Pool B</th>
+                <?php 
+                $u11PoolNames = array_keys($u11Pools);
+                foreach ($u11PoolNames as $poolName): ?>
+                  <th scope="col">Pool <?php echo htmlspecialchars($poolName); ?></th>
+                <?php endforeach; ?>
+                
+                <?php // Add empty columns if we don't have enough pools
+                for ($i = count($u11PoolNames); $i < 2; $i++): ?>
+                  <th scope="col">Pool <?php echo chr(65 + $i); // A, B, etc. ?></th>
+                <?php endfor; ?>
               </tr>
             </thead>
             <tbody class="white-text">
-              <tr>
-                <td>Island Aces MacDonald</td>
-                <td>Bedford Elite 1</td>
-              </tr>
-              <tr>
-                <td>Island Aces Walker</td>
-                <td>Bedford Elite 2</td>
-              </tr>
-              <tr>
-                <td>UNB Jr Reds</td>
-                <td>East Hants Tigers</td>
-              </tr>
+              <?php 
+              // Find the maximum number of teams in any pool
+              $maxU11Teams = 0;
+              foreach ($u11Pools as $teams) {
+                  $maxU11Teams = max($maxU11Teams, count($teams));
+              }
+              
+              // Create rows for each team
+              for ($i = 0; $i < $maxU11Teams; $i++): ?>
+                <tr>
+                  <?php foreach ($u11PoolNames as $poolName): ?>
+                    <td>
+                      <?php 
+                      if (isset($u11Pools[$poolName][$i])) {
+                          echo htmlspecialchars($u11Pools[$poolName][$i]);
+                      }
+                      ?>
+                    </td>
+                  <?php endforeach; ?>
+                  
+                  <?php // Add empty cells if we don't have enough pools
+                  for ($j = count($u11PoolNames); $j < 2; $j++): ?>
+                    <td></td>
+                  <?php endfor; ?>
+                </tr>
+              <?php endfor; ?>
+              
+              <?php // If no teams found, display a message
+              if (empty($u11Pools)): ?>
+                <tr>
+                  <td colspan="2" class="text-center">No teams assigned to pools yet.</td>
+                </tr>
+              <?php endif; ?>
             </tbody>
           </table>
         </div>
@@ -252,29 +406,112 @@ error_log("End PHP script");
         <div class="col-md-6">
           <h3 class="text-center">u12 Division</h3>
           <table class="table table-bordered white-text">
-          <thead class="thead-dark">
+            <thead class="thead-dark">
               <tr>
-                <th scope="col">Pool C</th>
-                <th scope="col">Pool D</th>
+                <?php 
+                $u12PoolNames = array_keys($u12Pools);
+                foreach ($u12PoolNames as $poolName): ?>
+                  <th scope="col">Pool <?php echo htmlspecialchars($poolName); ?></th>
+                <?php endforeach; ?>
+                
+                <?php // Add empty columns if we don't have enough pools
+                for ($i = count($u12PoolNames); $i < 2; $i++): ?>
+                  <th scope="col">Pool <?php echo chr(67 + $i); // C, D, etc. ?></th>
+                <?php endfor; ?>
               </tr>
             </thead>
             <tbody class="white-text">
+              <?php 
+              // Find the maximum number of teams in any pool
+              $maxU12Teams = 0;
+              foreach ($u12Pools as $teams) {
+                  $maxU12Teams = max($maxU12Teams, count($teams));
+              }
+              
+              // Create rows for each team
+              for ($i = 0; $i < $maxU12Teams; $i++): ?>
+                <tr>
+                  <?php foreach ($u12PoolNames as $poolName): ?>
+                    <td>
+                      <?php 
+                      if (isset($u12Pools[$poolName][$i])) {
+                          echo htmlspecialchars($u12Pools[$poolName][$i]);
+                      }
+                      ?>
+                    </td>
+                  <?php endforeach; ?>
+                  
+                  <?php // Add empty cells if we don't have enough pools
+                  for ($j = count($u12PoolNames); $j < 2; $j++): ?>
+                    <td></td>
+                  <?php endfor; ?>
+                </tr>
+              <?php endfor; ?>
+              
+              <?php // If no teams found, display a message
+              if (empty($u12Pools)): ?>
+                <tr>
+                  <td colspan="2" class="text-center">No teams assigned to pools yet.</td>
+                </tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- u13 Division in its own row -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <h3 class="text-center">u13 Division</h3>
+          <table class="table table-bordered white-text">
+            <thead class="thead-dark">
               <tr>
-                <td>Bedford Elite 1</td>
-                <td>Bedford Elite 2</td>
+                <?php 
+                $u13PoolNames = array_keys($u13Pools);
+                foreach ($u13PoolNames as $poolName): ?>
+                  <th scope="col">Pool <?php echo htmlspecialchars($poolName); ?></th>
+                <?php endforeach; ?>
+                
+                <?php // Add empty columns if we don't have enough pools
+                for ($i = count($u13PoolNames); $i < 4; $i++): ?>
+                  <th scope="col">Pool <?php echo chr(65 + $i); // A, B, C, D, etc. ?></th>
+                <?php endfor; ?>
               </tr>
-              <tr>
-                <td>Evolution Basketball</td>
-                <td>Fury</td>
-              </tr>
-              <tr>
-                <td>NXT Level</td>
-                <td>Sumerside Sting</td>
-              </tr>
-              <tr>
-                <td>Surge Select</td>
-                <td>Woodstock Thunder</td>
-              </tr>
+            </thead>
+            <tbody class="white-text">
+              <?php 
+              // Find the maximum number of teams in any pool
+              $maxU13Teams = 0;
+              foreach ($u13Pools as $teams) {
+                  $maxU13Teams = max($maxU13Teams, count($teams));
+              }
+              
+              // Create rows for each team
+              for ($i = 0; $i < $maxU13Teams; $i++): ?>
+                <tr>
+                  <?php foreach ($u13PoolNames as $poolName): ?>
+                    <td>
+                      <?php 
+                      if (isset($u13Pools[$poolName][$i])) {
+                          echo htmlspecialchars($u13Pools[$poolName][$i]);
+                      }
+                      ?>
+                    </td>
+                  <?php endforeach; ?>
+                  
+                  <?php // Add empty cells if we don't have enough pools
+                  for ($j = count($u13PoolNames); $j < 4; $j++): ?>
+                    <td></td>
+                  <?php endfor; ?>
+                </tr>
+              <?php endfor; ?>
+              
+              <?php // If no teams found, display a message
+              if (empty($u13Pools)): ?>
+                <tr>
+                  <td colspan="4" class="text-center">No teams assigned to pools yet.</td>
+                </tr>
+              <?php endif; ?>
             </tbody>
           </table>
         </div>
@@ -285,21 +522,36 @@ error_log("End PHP script");
         <h1 class="mt-4">Schedule</h1>
 
         <div class="filter-container">
-    <label for="gymFilter" class="select-label">Select Gym:</label>
-    <div class="select-wrap">
-        <select id="gymFilter" class="form-control" onchange="filterSchedule()">
-            <option value="">All Gyms</option>
-          <option value="Glen Stewart Elementary">Glen Stewart Elementary</option>
-          <option value="Stratford Elementary">Stratford Elementary</option>
-          <option value="Spring Park Elementary">Spring Park Elementary</option>
-          <option value="Stonepark Jr High">Stonepark Jr High</option>
-          <option value="Birchwood Jr High">Birchwood Jr High</option>
-          </select>
-    </div>
-    <a href="../files/combined.pdf" class="btn btn-primary mb-3 btn-download">Download as PDF</a>
-</div>
+            <div class="filter-item">
+                <label for="gymFilter" class="select-label">Select Gym:</label>
+                <div class="select-wrap">
+                    <select id="gymFilter" class="form-control" onchange="filterSchedule()">
+                        <option value="">All Gyms</option>
+                        <option value="Town Hall">Town Hall</option>
+                        <option value="Donagh">Donagh</option>
+                        <option value="Stonepark">Stonepark</option>
+                        <option value="Rural">Rural</option>
+                        <option value="Glen Stewart">Glen Stewart</option>
+                        <option value="Colonel Grey">Colonel Grey</option>
+                        <option value="UPEI">UPEI</option>
+                    </select>
+                </div>
+            </div>
 
+            <div class="filter-item">
+                <label for="divisionFilter" class="select-label">Select Division:</label>
+                <div class="select-wrap">
+                    <select id="divisionFilter" class="form-control" onchange="filterSchedule()">
+                        <option value="">All Divisions</option>
+                        <option value="u11">U11</option>
+                        <option value="u12">U12</option>
+                        <option value="u13">U13</option>
+                    </select>
+                </div>
+            </div>
 
+              <!-- <a href="../files/combined.pdf" class="btn btn-primary mb-3 btn-download">Download as PDF</a> -->
+        </div>
 
         <div class="table-responsive"> 
           <table class="table table-striped table-white">
@@ -338,8 +590,10 @@ error_log("End PHP script");
 <script>
 function filterSchedule() {
     var gym = document.getElementById('gymFilter').value;
+    var division = document.getElementById('divisionFilter').value;
+    
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'schedule.php?gym=' + encodeURIComponent(gym), true);
+    xhr.open('GET', 'schedule.php?gym=' + encodeURIComponent(gym) + '&division=' + encodeURIComponent(division), true);
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
     // This event handler will log all responses, which can help with debugging

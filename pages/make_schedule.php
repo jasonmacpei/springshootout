@@ -35,7 +35,7 @@ try {
         , t.team_name
     from registrations r 
     left outer join teams t on r.team_id = t.team_id
-        where year = 2024 
+        where year = 2025 
         and status = 1
     order by registration_id;
         ");
@@ -126,7 +126,7 @@ try {
 
         <div class="form-group col-md-6">
             <label for="game_date" class="text-white">Game Date:</label>
-            <input type="date" id="game_date" name="game_date" class="form-control" required value="2024-04-28">
+            <input type="date" id="game_date" name="game_date" class="form-control" required value="2025-04-28">
         </div>
 
     </div>
@@ -135,11 +135,13 @@ try {
       <label for="gym" class="text-white">Gym:</label>
         <select name="gym" class="form-control" required>
             <option value="" disabled selected>Please choose a gym</option>
-            <option value="Glen Stewart Elementary">Glen Stewart Elementary</option>
-            <option value="Stratford Elementary">Stratford Elementary</option>
-            <option value="Spring Park Elementary">Spring Park Elementary</option>
-            <option value="Stonepark Jr High">Stonepark Jr High</option>
-            <option value="Birchwood Jr High">Birchwood Jr High</option>
+            <option value="Town Hall">Town Hall</option>
+            <option value="Donagh">Donagh</option>
+            <option value="Stonepark">Stonepark</option>
+            <option value="Rural">Rural</option>
+            <option value="Glen Stewart">Glen Stewart</option>
+            <option value="Colonel Grey">Colonel Grey</option>
+            <option value="UPEI">UPEI</option>
         </select>
     </div>
 
@@ -148,8 +150,9 @@ try {
         <label for="game_type" class="text-white">Game Type:</label>
         <select name="game_type" class="form-control" required>
             <option value="" disabled selected>Please choose a game type</option>
-            <option value="u10">u10</option>
-            <option value="u12">u12</option>
+            <option value="u11">u11 Pool</option>
+            <option value="u12">u12 Pool</option>
+            <option value="u13">u13 Pool</option>            
             <option value="u10 A1 vs A2">u10 A1 vs A2</option>
             <option value="u10 B1 vs B2">u10 B1 vs B2</option>
             <option value="u10 A3 vs B3">u10 A3 vs B3</option>

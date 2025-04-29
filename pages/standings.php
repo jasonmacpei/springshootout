@@ -2,7 +2,8 @@
 // Include the database connection
 require __DIR__ . '/../scripts/php/db_connect.php';
 
-function getStandings($pdo, $poolName) {
+// Function to get standings for a specific pool
+function getStandingsByPoolId($pdo, $poolId) {
     $stmt = $pdo->prepare("
         SELECT 
             p.pool_name,
@@ -14,31 +15,111 @@ function getStandings($pdo, $poolName) {
             COALESCE(SUM(gr.points_against), 0) AS points_against,
             COALESCE(SUM(gr.points_for), 0) - COALESCE(SUM(gr.points_against), 0) AS plus_minus
         FROM 
-            registrations r
+            teams t
         JOIN 
-            teams t ON r.team_id = t.team_id
-        LEFT JOIN 
             team_pools tp ON t.team_id = tp.team_id
-        LEFT JOIN 
+        JOIN 
             pools p ON tp.pool_id = p.pool_id
+        JOIN 
+            registrations r ON t.team_id = r.team_id
         LEFT JOIN 
             game_results gr ON t.team_id = gr.team_id
         WHERE 
-            r.year = 2024 AND r.status = 1 AND p.pool_name = :poolName
+            r.year = 2025 AND r.status = 1 AND p.pool_id = :poolId
         GROUP BY 
             p.pool_name, t.team_name
         ORDER BY 
-            wins DESC, plus_minus DESC, points_for DESC;
+            wins DESC, plus_minus DESC, points_for DESC
     ");
-    $stmt->execute(['poolName' => $poolName]);
+    $stmt->execute([':poolId' => $poolId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-$poolAStandings = getStandings($pdo, 'A');
-$poolBStandings = getStandings($pdo, 'B');
-$poolCStandings = getStandings($pdo, 'C');
-$poolDStandings = getStandings($pdo, 'D');
+// Function to create HTML for a standings table
+function createStandingsTable($standings) {
+    if (empty($standings)) {
+        return '<div class="alert alert-info">No teams assigned to this pool yet.</div>';
+    }
+    
+    $tableHTML = '<table class="table table-dark pool-table">';
+    $tableHTML .= '<thead>
+                        <tr>
+                            <th class="team-name">Team Name</th>
+                            <th class="stat">G</th>
+                            <th class="stat">W</th>
+                            <th class="stat">L</th>
+                            <th class="stat">PF</th>
+                            <th class="stat">PA</th>
+                            <th class="stat">+/-</th>
+                        </tr>
+                    </thead>
+                    <tbody>';
 
+    foreach ($standings as $row) {
+        $tableHTML .= '<tr>
+                            <td class="team-name">'.htmlspecialchars($row['team_name']).'</td>
+                            <td>'.$row['games_played'].'</td>
+                            <td>'.$row['wins'].'</td>
+                            <td>'.$row['losses'].'</td>
+                            <td>'.$row['points_for'].'</td>
+                            <td>'.$row['points_against'].'</td>
+                            <td>'.$row['plus_minus'].'</td>
+                        </tr>';
+    }
+
+    $tableHTML .= '</tbody></table>';
+    return $tableHTML;
+}
+
+// Get all divisions with active teams
+try {
+    $divisionsStmt = $pdo->query("
+        SELECT DISTINCT r.division
+        FROM registrations r
+        JOIN teams t ON r.team_id = t.team_id
+        JOIN team_pools tp ON t.team_id = tp.team_id
+        WHERE r.year = 2025 AND r.status = 1
+        ORDER BY r.division
+    ");
+    $divisions = $divisionsStmt->fetchAll(PDO::FETCH_COLUMN);
+} catch (PDOException $e) {
+    $error = "Error fetching divisions: " . $e->getMessage();
+    $divisions = [];
+}
+
+// Structure to hold all standings data
+$divisionPoolsData = [];
+
+// For each division, get the pools
+foreach ($divisions as $division) {
+    try {
+        $poolsStmt = $pdo->prepare("
+            SELECT DISTINCT p.pool_id, p.pool_name
+            FROM pools p
+            JOIN team_pools tp ON p.pool_id = tp.pool_id
+            JOIN teams t ON tp.team_id = t.team_id
+            JOIN registrations r ON t.team_id = r.team_id
+            WHERE r.division = :division AND r.year = 2025 AND r.status = 1
+            ORDER BY p.pool_name
+        ");
+        $poolsStmt->execute([':division' => $division]);
+        $pools = $poolsStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Get standings for each pool in the division
+        $poolsData = [];
+        foreach ($pools as $pool) {
+            $poolsData[] = [
+                'pool_id' => $pool['pool_id'],
+                'pool_name' => $pool['pool_name'],
+                'standings' => getStandingsByPoolId($pdo, $pool['pool_id'])
+            ];
+        }
+        
+        $divisionPoolsData[$division] = $poolsData;
+    } catch (PDOException $e) {
+        $error = "Error fetching pools for division {$division}: " . $e->getMessage();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -101,6 +182,17 @@ $poolDStandings = getStandings($pdo, 'D');
         text-align: center;
         display: block;
     }
+    .division-heading {
+        background-color: #343a40;
+        color: #fff;
+        font-size: 1.5em;
+        padding: 0.7em;
+        margin-top: 1.5em;
+        margin-bottom: 1em;
+        text-align: center;
+        display: block;
+        border-radius: 5px;
+    }
     /* Adjusting the team name column width and table font sizes on smaller screens */
     @media (max-width: 1200px) {
         .pool-table th, .pool-table td {
@@ -131,7 +223,7 @@ $poolDStandings = getStandings($pdo, 'D');
             font-size: 1em; /* Smaller font size for pool headings on the smallest screens */
         }
     }
-</style>
+    </style>
 </head>
 <body>
 
@@ -148,81 +240,47 @@ $poolDStandings = getStandings($pdo, 'D');
     <img src="../assets/images/name.png" alt="Spring Shootout">
 </div>
 
-<div class="row">
-    <div class="col-lg-6 col-md-12">
-        <div class="pool-table-container">
-            <h3 class="pool-heading">Pool A</h3>
-            <?php echo createStandingsTable($poolAStandings); ?>
-        </div>
-    </div>
-    <div class="col-lg-6 col-md-12">
-        <div class="pool-table-container">
-            <h3 class="pool-heading">Pool B</h3>
-            <?php echo createStandingsTable($poolBStandings); ?>
-        </div>
-    </div>
+<div class="container-fluid">
+    <?php if (isset($error)): ?>
+        <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+    <?php endif; ?>
+
+    <?php if (empty($divisionPoolsData)): ?>
+        <div class="alert alert-info">No standings data available. Please assign teams to pools first.</div>
+    <?php else: ?>
+        <?php foreach ($divisionPoolsData as $division => $poolsData): ?>
+            <div class="division-heading"><?php echo htmlspecialchars($division); ?> Division</div>
+            
+            <?php 
+            $poolCount = count($poolsData);
+            $colSize = ($poolCount > 0) ? 12 / min($poolCount, 2) : 12; // Maximum of 2 pools per row
+            
+            for ($i = 0; $i < $poolCount; $i += 2): // Process in pairs for two columns per row
+            ?>
+                <div class="row">
+                    <?php for ($j = $i; $j < min($i + 2, $poolCount); $j++): // Process this pair of pools ?>
+                        <div class="col-lg-<?php echo $colSize; ?> col-md-12">
+                            <div class="pool-table-container">
+                                <h3 class="pool-heading">Pool <?php echo htmlspecialchars($poolsData[$j]['pool_name']); ?></h3>
+                                <?php echo createStandingsTable($poolsData[$j]['standings']); ?>
+                            </div>
+                        </div>
+                    <?php endfor; ?>
+                </div>
+            <?php endfor; ?>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </div>
-<div class="row">
-    <div class="col-lg-6 col-md-12">
-        <div class="pool-table-container">
-            <h3 class="pool-heading">Pool C</h3>
-            <?php echo createStandingsTable($poolCStandings); ?>
-        </div>
-    </div>
-    <div class="col-lg-6 col-md-12">
-        <div class="pool-table-container">
-            <h3 class="pool-heading">Pool D</h3>
-            <?php echo createStandingsTable($poolDStandings); ?>
-        </div>
-    </div>
-</div>
 
-
-
-<!-- ... Your existing scripts for dynamic content loading ... -->
-   <!-- jQuery and Bootstrap JS -->
-   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-   <!-- Navbar dynamic loading -->
-   <script>
-     $(document).ready(function() {
-         $("#nav-placeholder").load("../includes/navbar.html");
-     });
-   </script> 
+<!-- jQuery and Bootstrap JS -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<!-- Navbar dynamic loading -->
+<script>
+  $(document).ready(function() {
+      $("#nav-placeholder").load("../includes/navbar.html");
+  });
+</script> 
 
 </body>
 </html>
-
-<?php
-// Helper function to create standings tables
-function createStandingsTable($standings) {
-    $tableHTML = '<table class="table table-dark pool-table">';
-    $tableHTML .= '<thead>
-                        <tr>
-                            <th class="team-name">Team Name</th>
-                            <th class="stat">G</th>
-                            <th class="stat">W</th>
-                            <th class="stat">L</th>
-                            <th class="stat">PF</th>
-                            <th class="stat">PA</th>
-                            <th class="stat">+/-</th>
-                        </tr>
-                    </thead>
-                    <tbody>';
-
-    foreach ($standings as $row) {
-        $tableHTML .= '<tr>
-                            <td class="team-name">'.htmlspecialchars($row['team_name']).'</td>
-                            <td>'.$row['games_played'].'</td>
-                            <td>'.$row['wins'].'</td>
-                            <td>'.$row['losses'].'</td>
-                            <td>'.$row['points_for'].'</td>
-                            <td>'.$row['points_against'].'</td>
-                            <td>'.$row['plus_minus'].'</td>
-                        </tr>';
-    }
-
-    $tableHTML .= '</tbody></table>';
-    return $tableHTML;
-}
-?>
