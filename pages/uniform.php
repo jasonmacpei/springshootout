@@ -1,67 +1,75 @@
 <?php
-    require __DIR__ . '/../scripts/php/db_connect.php'; // Include the database connection
-    require_once '/home/lostan6/springshootout.ca/includes/config.php'; // Include the error log configuration
-    error_log("Run uniform.php was run at " . date("Y-m-d H:i:s"));
+session_start(); // Start the session
 
-    $current_uniform = []; // Initialize to prevent undefined variable errors
+// Check if user is logged in
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header('Location: admin.php');
+    exit;
+}
 
-    // Check if form is submitted
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Assuming you've validated and sanitized the input
-        $team_id = $_POST['team_id'];
-        $home_color = $_POST['home_color'];
-        $away_color = $_POST['away_color'];
+require __DIR__ . '/../scripts/php/db_connect.php'; // Include the database connection
+require_once '/home/lostan6/springshootout.ca/includes/config.php'; // Include the error log configuration
+error_log("Run uniform.php was run at " . date("Y-m-d H:i:s"));
 
-        // First check if the colors already exist for the team
-        $uniformQuery = "SELECT home_color, away_color FROM team_uniforms WHERE team_id = :team_id";
-        $uniformStmt = $pdo->prepare($uniformQuery);
-        $uniformStmt->execute(['team_id' => $team_id]);
-        $current_uniform = $uniformStmt->fetch(PDO::FETCH_ASSOC);
-        error_log('Current Uniform Data Dump: ' . print_r($current_uniform, true)); // Correct way to log array
+$current_uniform = []; // Initialize to prevent undefined variable errors
 
-        // If colors exist, perform an UPDATE; otherwise, perform an INSERT
-        if ($current_uniform) {
-            $query = "UPDATE team_uniforms SET home_color = :home_color, away_color = :away_color WHERE team_id = :team_id";
-        } else {
-            $query = "INSERT INTO team_uniforms (team_id, home_color, away_color) VALUES (:team_id, :home_color, :away_color)";
-        }
+// Check if form is submitted
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Assuming you've validated and sanitized the input
+    $team_id = $_POST['team_id'];
+    $home_color = $_POST['home_color'];
+    $away_color = $_POST['away_color'];
 
-        try {
-            $stmt = $pdo->prepare($query);
-            $stmt->bindParam(':team_id', $team_id);
-            $stmt->bindParam(':home_color', $home_color);
-            $stmt->bindParam(':away_color', $away_color);
-            $stmt->execute();
-            $success_message = $current_uniform ? "Team Colors Updated." : "Team Colors Entered.";
-        } catch (PDOException $e) {
-            $error_message = "Error entering/updating colors: " . $e->getMessage();
-        }
+    // First check if the colors already exist for the team
+    $uniformQuery = "SELECT home_color, away_color FROM team_uniforms WHERE team_id = :team_id";
+    $uniformStmt = $pdo->prepare($uniformQuery);
+    $uniformStmt->execute(['team_id' => $team_id]);
+    $current_uniform = $uniformStmt->fetch(PDO::FETCH_ASSOC);
+    error_log('Current Uniform Data Dump: ' . print_r($current_uniform, true)); // Correct way to log array
+
+    // If colors exist, perform an UPDATE; otherwise, perform an INSERT
+    if ($current_uniform) {
+        $query = "UPDATE team_uniforms SET home_color = :home_color, away_color = :away_color WHERE team_id = :team_id";
+    } else {
+        $query = "INSERT INTO team_uniforms (team_id, home_color, away_color) VALUES (:team_id, :home_color, :away_color)";
     }
 
-    // Fetch teams from registrations table for select options
     try {
-        $stmt = $pdo->query("
-            select 
-                t.team_id
-                , t.team_name
-                from registrations r
-                left join teams t on r.team_id = t.team_id
-                where r.year = 2024
-                and r.status=1
-            ");
-        $teams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(':team_id', $team_id);
+        $stmt->bindParam(':home_color', $home_color);
+        $stmt->bindParam(':away_color', $away_color);
+        $stmt->execute();
+        $success_message = $current_uniform ? "Team Colors Updated." : "Team Colors Entered.";
     } catch (PDOException $e) {
-        $error_message = "Error fetching teams: " . $e->getMessage();
+        $error_message = "Error entering/updating colors: " . $e->getMessage();
     }
+}
 
-    // Ensure the current uniform data is fetched when the page is first loaded or when a team is selected
-    if (!empty($_POST['team_id'])) {
-        // Query to get the current uniform colors
-        $uniformQuery = "SELECT home_color, away_color FROM team_uniforms WHERE team_id = :team_id";
-        $uniformStmt = $pdo->prepare($uniformQuery);
-        $uniformStmt->execute(['team_id' => $_POST['team_id']]);
-        $current_uniform = $uniformStmt->fetch(PDO::FETCH_ASSOC);
-    }
+// Fetch teams from registrations table for select options
+try {
+    $stmt = $pdo->query("
+        select 
+            t.team_id
+            , t.team_name
+            from registrations r
+            left join teams t on r.team_id = t.team_id
+            where r.year = 2024
+            and r.status=1
+        ");
+    $teams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $error_message = "Error fetching teams: " . $e->getMessage();
+}
+
+// Ensure the current uniform data is fetched when the page is first loaded or when a team is selected
+if (!empty($_POST['team_id'])) {
+    // Query to get the current uniform colors
+    $uniformQuery = "SELECT home_color, away_color FROM team_uniforms WHERE team_id = :team_id";
+    $uniformStmt = $pdo->prepare($uniformQuery);
+    $uniformStmt->execute(['team_id' => $_POST['team_id']]);
+    $current_uniform = $uniformStmt->fetch(PDO::FETCH_ASSOC);
+}
 ?>
 
 

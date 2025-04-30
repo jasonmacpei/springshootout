@@ -168,12 +168,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Handle auto-update of playoff games based on standings
     if (isset($_POST['auto_update_playoffs'])) {
         try {
-            $updatedCount = autoUpdatePlayoffGames($pdo);
-            if ($updatedCount > 0) {
+            // Call the enhanced auto-update function with debug enabled and pool check optional
+            $debug = isset($_POST['run_diagnostics']) && $_POST['run_diagnostics'] == 1;
+            $result = autoUpdatePlayoffGames($pdo, 2025, false, $debug);
+            
+            if ($result['update_count'] > 0) {
                 $success = true;
-                $_SESSION['message'] = "Successfully updated $updatedCount playoff game(s) based on current standings.";
+                $_SESSION['message'] = "Successfully updated " . $result['update_count'] . " playoff game(s) based on current standings.";
             } else {
-                $errors[] = "No playoff games could be updated. Either all pool games aren't complete, or no playoff games exist.";
+                // More detailed error message
+                $errors[] = $result['message'];
+                
+                // Only add detailed diagnostics if not in full diagnostic mode
+                if (!$debug) {
+                    // Add detailed diagnostics for unresolved placeholders
+                    if (!empty($result['diagnostics'])) {
+                        $unresolved = [];
+                        foreach ($result['diagnostics'] as $game) {
+                            if (!$game['updated']) {
+                                $gameInfo = "Game #" . $game['game_id'] . " (" . $game['game_type'] . " " . $game['game_category'] . ")";
+                                
+                                if (!$game['home']['resolved']) {
+                                    $errorReason = $game['home']['reason'] ?? "Could not resolve placeholder";
+                                    // Add specific reason if available
+                                    if (!empty($game['home']['error_details'])) {
+                                        $errorStep = $game['home']['error_details']['step'] ?? '';
+                                        if ($errorStep === 'pool_lookup') {
+                                            $errorReason = "Pool not found: " . $game['home']['error_details']['details']['pool_letter'] ?? '';
+                                        } else if ($errorStep === 'position_lookup') {
+                                            $position = $game['home']['error_details']['details']['position'] ?? '?';
+                                            $available = $game['home']['error_details']['details']['available_positions'] ?? 0;
+                                            $errorReason = "Position $position not available (only $available position(s) in pool)";
+                                        } else if ($errorStep === 'team_lookup') {
+                                            $errorReason = "No teams found in pool";
+                                        } else if ($errorStep === 'parsing') {
+                                            $errorReason = "Could not parse placeholder format";
+                                        }
+                                    }
+                                    
+                                    $unresolved[] = $gameInfo . ": Could not resolve home placeholder \"" . 
+                                        $game['home']['placeholder'] . "\" - " . $errorReason;
+                                }
+                                
+                                if (!$game['away']['resolved']) {
+                                    $errorReason = $game['away']['reason'] ?? "Could not resolve placeholder";
+                                    // Add specific reason if available
+                                    if (!empty($game['away']['error_details'])) {
+                                        $errorStep = $game['away']['error_details']['step'] ?? '';
+                                        if ($errorStep === 'pool_lookup') {
+                                            $errorReason = "Pool not found: " . $game['away']['error_details']['details']['pool_letter'] ?? '';
+                                        } else if ($errorStep === 'position_lookup') {
+                                            $position = $game['away']['error_details']['details']['position'] ?? '?';
+                                            $available = $game['away']['error_details']['details']['available_positions'] ?? 0;
+                                            $errorReason = "Position $position not available (only $available position(s) in pool)";
+                                        } else if ($errorStep === 'team_lookup') {
+                                            $errorReason = "No teams found in pool";
+                                        } else if ($errorStep === 'parsing') {
+                                            $errorReason = "Could not parse placeholder format";
+                                        }
+                                    }
+                                    
+                                    $unresolved[] = $gameInfo . ": Could not resolve away placeholder \"" . 
+                                        $game['away']['placeholder'] . "\" - " . $errorReason;
+                                }
+                            }
+                        }
+                        
+                        // Add the first 5 unresolved placeholders to the errors
+                        $maxToShow = 5;
+                        $count = min(count($unresolved), $maxToShow);
+                        for ($i = 0; $i < $count; $i++) {
+                            $errors[] = $unresolved[$i];
+                        }
+                        
+                        // If there are more than 5, add a summary message
+                        if (count($unresolved) > $maxToShow) {
+                            $errors[] = "...and " . (count($unresolved) - $maxToShow) . " more unresolved placeholders.";
+                        }
+                    }
+                }
             }
         } catch (Exception $e) {
             $errors[] = "Error updating playoff games: " . $e->getMessage();
@@ -335,6 +408,54 @@ try {
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 5px;
         }
+        
+        /* Diagnostic Display Improvements */
+        .error-details-btn, .pool-details-btn {
+            opacity: 0.8;
+            transition: all 0.2s ease;
+        }
+        .error-details-btn:hover, .pool-details-btn:hover {
+            opacity: 1;
+            transform: translateY(-2px);
+        }
+        .alert-warning {
+            color: #000 !important;
+            background-color: #ffeca8 !important;
+            border-color: #ffe38f !important;
+        }
+        code {
+            background-color: rgba(0,0,0,0.2);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #ff9900;
+        }
+        .table-dark {
+            background-color: #1e1e1e;
+        }
+        .table-dark thead th {
+            background-color: #333;
+            border-bottom: 2px solid #ff6b00;
+        }
+        .card-header {
+            background-color: #2a2a2a;
+            border-bottom: 1px solid #444;
+        }
+        .alert-info {
+            background-color: #004d7a !important;
+            border-color: #002d47 !important;
+            color: #ffffff !important;
+        }
+        pre {
+            background-color: #111;
+            padding: 8px;
+            border-radius: 4px;
+            color: #ddd;
+            font-size: 0.85em;
+            overflow-x: auto;
+            max-height: 300px;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -385,14 +506,430 @@ try {
     <div class="auto-update-container">
         <h4>Auto-Update Playoff Games</h4>
         <p>This will automatically assign teams to playoff games based on current standings.</p>
+        
+        <?php 
+        // Check if all pool games have results
+        $allPoolGamesComplete = areAllPoolGamesComplete($pdo);
+        if (!$allPoolGamesComplete): 
+        ?>
+            <div class="alert alert-warning">
+                <strong>Note:</strong> Not all pool games have results yet. The auto-update may not be able to resolve all placeholders.
+            </div>
+        <?php endif; ?>
+        
         <form method="post" action="">
-            <button type="submit" name="auto_update_playoffs" class="btn btn-warning" 
-                    onclick="return confirm('Are you sure you want to auto-update all playoff games based on current standings?')">
-                Auto-Update Playoff Games
-            </button>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <button type="submit" name="auto_update_playoffs" class="btn btn-warning" 
+                            onclick="return confirm('Are you sure you want to auto-update all playoff games based on current standings?')">
+                        Auto-Update Playoff Games
+                    </button>
+                    
+                    <a href="#" class="btn btn-info ml-2" data-toggle="collapse" data-target="#placeholderHelp">
+                        Placeholder Format Help
+                    </a>
+                    
+                    <div class="form-check form-check-inline ml-3">
+                        <input class="form-check-input" type="checkbox" name="run_diagnostics" id="run_diagnostics" value="1">
+                        <label class="form-check-label text-white" for="run_diagnostics">Run Full Diagnostics</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="placeholderHelp" class="collapse mt-3">
+                <div class="card bg-dark">
+                    <div class="card-header">
+                        <h5>Supported Placeholder Formats</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>The auto-update system supports these placeholder formats:</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-dark">
+                                <thead>
+                                    <tr>
+                                        <th>Format</th>
+                                        <th>Example</th>
+                                        <th>Meaning</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Simple format</td>
+                                        <td><code>A1</code>, <code>B2</code>, <code>C3</code></td>
+                                        <td>Pool letter + position</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Division format</td>
+                                        <td><code>u11 Pool A1</code>, <code>u12 Pool B2</code></td>
+                                        <td>Division + pool + position</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Game winners</td>
+                                        <td><code>Winner of Game #30</code></td>
+                                        <td>References previous game winners</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <h6>For best results when creating playoff games:</h6>
+                            <ol>
+                                <li>Use the formats above exactly as shown</li>
+                                <li>Include the division (u11, u12, etc.) in the placeholder for division-specific games</li>
+                                <li>Ensure pool games have complete results before using the auto-update feature</li>
+                                <li>Verify that the pool letter in your placeholder matches a pool name in the database</li>
+                            </ol>
+                        </div>
+                        
+                        <h6 class="mt-3">Important Notes About Pool Names:</h6>
+                        <p>The system tries to match pool references in several ways:</p>
+                        <ol>
+                            <li>Exact match (e.g., "A" in database = "A" in placeholder)</li>
+                            <li>Normalized match (e.g., "Pool A" in database = "A" in placeholder)</li>
+                            <li>Pattern match (e.g., "u11 A" in database = "A" in placeholder)</li>
+                        </ol>
+                        <p>For most reliable results, ensure your pool names in the database are simple (like "A", "B", "C") or include the division prefix consistently (like "u11 A", "u11 B", etc.).</p>
+                    </div>
+                </div>
+            </div>
         </form>
     </div>
-
+    
+    <!-- This is where we'll show diagnostic information if requested -->
+    <?php 
+    if (isset($_POST['auto_update_playoffs']) && isset($_POST['run_diagnostics']) && !empty($result) && empty($result['update_count'])): 
+    ?>
+    <div class="card mt-4 bg-dark">
+        <div class="card-header">
+            <h5>Placeholder Resolution Diagnostics</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <strong>Diagnostic Mode:</strong> Showing detailed information to help resolve placeholder issues.
+            </div>
+            
+            <h6 class="mt-4 mb-3">Available Pools in Database</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-dark">
+                    <thead>
+                        <tr>
+                            <th>Pool ID</th>
+                            <th>Pool Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($result['available_pools'])): ?>
+                            <?php foreach ($result['available_pools'] as $pool): ?>
+                                <tr>
+                                    <td><?php echo $pool['pool_id']; ?></td>
+                                    <td><?php echo htmlspecialchars($pool['pool_name']); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="2">No pools found in database</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h6 class="mt-4 mb-3">Pool Name Mapping</h6>
+            <p>The system will attempt to match placeholders to pools using these variations:</p>
+            <div class="table-responsive">
+                <table class="table table-sm table-dark">
+                    <thead>
+                        <tr>
+                            <th>Database Pool Name</th>
+                            <th>Will Match Placeholders</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($result['pool_mapping_info'])): ?>
+                            <?php foreach ($result['pool_mapping_info'] as $poolName => $mappingInfo): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($poolName); ?></td>
+                                    <td>
+                                        <?php 
+                                        if (!empty($mappingInfo['will_match_for'])) {
+                                            echo '<code>' . htmlspecialchars(implode('</code>, <code>', array_unique($mappingInfo['will_match_for']))) . '</code>';
+                                        } else {
+                                            echo 'No mapping information';
+                                        }
+                                        ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="2">No pool mapping information available</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h6 class="mt-4 mb-3">Pools Analysis</h6>
+            <?php if (!empty($result['pool_analysis'])): ?>
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm table-dark">
+                        <thead>
+                            <tr>
+                                <th>Pool</th>
+                                <th>Teams</th>
+                                <th>Has Standings</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($result['pool_analysis'] as $poolName => $poolData): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($poolName); ?></td>
+                                    <td><?php echo $poolData['team_count']; ?></td>
+                                    <td><?php echo $poolData['has_standings'] ? 'Yes' : 'No'; ?></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info pool-details-btn" type="button" data-toggle="collapse" 
+                                                data-target="#pool-<?php echo $poolData['pool_id']; ?>">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="p-0">
+                                        <div class="collapse" id="pool-<?php echo $poolData['pool_id']; ?>">
+                                            <div class="p-3">
+                                                <h6>Teams in Pool:</h6>
+                                                <ul>
+                                                    <?php foreach ($poolData['team_list'] as $team): ?>
+                                                        <li><?php echo htmlspecialchars($team['team_name'] . ' (' . $team['division'] . ')'); ?> 
+                                                            - Status: <?php echo $team['status'] == 1 ? 'Active' : 'Inactive'; ?></li>
+                                                    <?php endforeach; ?>
+                                                </ul>
+                                                
+                                                <h6>Standings:</h6>
+                                                <?php if (empty($poolData['standings'])): ?>
+                                                    <p>No standings available for this pool.</p>
+                                                <?php else: ?>
+                                                    <table class="table table-sm table-dark">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Position</th>
+                                                                <th>Team</th>
+                                                                <th>Division</th>
+                                                                <th>Wins</th>
+                                                                <th>+/-</th>
+                                                                <th>PF</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php foreach ($poolData['standings'] as $index => $team): ?>
+                                                                <tr>
+                                                                    <td><?php echo $index + 1; ?></td>
+                                                                    <td><?php echo htmlspecialchars($team['team_name']); ?></td>
+                                                                    <td><?php echo htmlspecialchars($team['division']); ?></td>
+                                                                    <td><?php echo $team['wins']; ?></td>
+                                                                    <td><?php echo $team['plus_minus']; ?></td>
+                                                                    <td><?php echo $team['points_for']; ?></td>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                        </tbody>
+                                                    </table>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <p>No pool analysis available.</p>
+            <?php endif; ?>
+            
+            <h6 class="mt-4 mb-3">Failed Placeholders</h6>
+            <?php if (!empty($result['diagnostics'])): ?>
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm table-dark">
+                        <thead>
+                            <tr>
+                                <th>Game #</th>
+                                <th>Type</th>
+                                <th>Category</th>
+                                <th>Home Placeholder</th>
+                                <th>Away Placeholder</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($result['diagnostics'] as $game): ?>
+                                <?php if (!$game['updated']): ?>
+                                    <tr>
+                                        <td><?php echo $game['game_id']; ?></td>
+                                        <td><?php echo htmlspecialchars($game['game_type']); ?></td>
+                                        <td><?php echo htmlspecialchars($game['game_category']); ?></td>
+                                        <td>
+                                            <?php echo htmlspecialchars($game['home']['placeholder']); ?>
+                                            <?php if (!$game['home']['resolved']): ?>
+                                                <span class="text-danger">
+                                                    <br>Error: <?php echo $game['home']['reason']; ?>
+                                                    <?php if (!empty($game['home']['error_details'])): ?>
+                                                        <button class="btn btn-sm btn-outline-danger ml-2 error-details-btn" type="button" data-toggle="collapse" 
+                                                                data-target="#home-error-<?php echo $game['game_id']; ?>">
+                                                            Details
+                                                        </button>
+                                                        <div class="collapse mt-2" id="home-error-<?php echo $game['game_id']; ?>">
+                                                            <div class="p-2 border border-danger rounded">
+                                                                <p><strong>Step:</strong> <?php echo $game['home']['error_details']['step']; ?></p>
+                                                                <p><strong>Message:</strong> <?php echo $game['home']['error_details']['message']; ?></p>
+                                                                <?php if (!empty($game['home']['error_details']['details'])): ?>
+                                                                    <p><strong>Details:</strong></p>
+                                                                    <ul>
+                                                                        <?php foreach ($game['home']['error_details']['details'] as $key => $value): ?>
+                                                                            <li><strong><?php echo htmlspecialchars(ucfirst($key)); ?>:</strong> 
+                                                                                <?php 
+                                                                                if (is_array($value)) {
+                                                                                    if (!empty($value)) {
+                                                                                        echo '<pre>' . htmlspecialchars(json_encode($value, JSON_PRETTY_PRINT)) . '</pre>';
+                                                                                    } else {
+                                                                                        echo 'Empty array';
+                                                                                    }
+                                                                                } else {
+                                                                                    echo htmlspecialchars($value);
+                                                                                } 
+                                                                                ?>
+                                                                            </li>
+                                                                        <?php endforeach; ?>
+                                                                    </ul>
+                                                                    
+                                                                    <?php if ($game['home']['error_details']['step'] === 'pool_lookup' && !empty($game['home']['error_details']['details']['attempted_matches'])): ?>
+                                                                        <p><strong>Attempted Pool Matches:</strong></p>
+                                                                        <ul>
+                                                                            <li>Exact match: "<?php echo htmlspecialchars($game['home']['error_details']['details']['attempted_matches']['exact']); ?>"</li>
+                                                                            <li>Normalized match: "<?php echo htmlspecialchars($game['home']['error_details']['details']['attempted_matches']['normalized']); ?>"</li>
+                                                                            <li>Pattern matches: 
+                                                                                <?php 
+                                                                                foreach ($game['home']['error_details']['details']['attempted_matches']['patterns'] as $pattern) {
+                                                                                    echo '"' . htmlspecialchars($pattern) . '", ';
+                                                                                }
+                                                                                ?>
+                                                                            </li>
+                                                                            <?php if (!empty($game['home']['error_details']['details']['attempted_matches']['division_formats'])): ?>
+                                                                                <li>Division formats: 
+                                                                                    <?php 
+                                                                                    foreach ($game['home']['error_details']['details']['attempted_matches']['division_formats'] as $format) {
+                                                                                        echo '"' . htmlspecialchars($format) . '", ';
+                                                                                    }
+                                                                                    ?>
+                                                                                </li>
+                                                                            <?php endif; ?>
+                                                                        </ul>
+                                                                    <?php endif; ?>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php echo htmlspecialchars($game['away']['placeholder']); ?>
+                                            <?php if (!$game['away']['resolved']): ?>
+                                                <span class="text-danger">
+                                                    <br>Error: <?php echo $game['away']['reason']; ?>
+                                                    <?php if (!empty($game['away']['error_details'])): ?>
+                                                        <button class="btn btn-sm btn-outline-danger ml-2 error-details-btn" type="button" data-toggle="collapse" 
+                                                                data-target="#away-error-<?php echo $game['game_id']; ?>">
+                                                            Details
+                                                        </button>
+                                                        <div class="collapse mt-2" id="away-error-<?php echo $game['game_id']; ?>">
+                                                            <div class="p-2 border border-danger rounded">
+                                                                <p><strong>Step:</strong> <?php echo $game['away']['error_details']['step']; ?></p>
+                                                                <p><strong>Message:</strong> <?php echo $game['away']['error_details']['message']; ?></p>
+                                                                <?php if (!empty($game['away']['error_details']['details'])): ?>
+                                                                    <p><strong>Details:</strong></p>
+                                                                    <ul>
+                                                                        <?php foreach ($game['away']['error_details']['details'] as $key => $value): ?>
+                                                                            <li><strong><?php echo htmlspecialchars(ucfirst($key)); ?>:</strong> 
+                                                                                <?php 
+                                                                                if (is_array($value)) {
+                                                                                    if (!empty($value)) {
+                                                                                        echo '<pre>' . htmlspecialchars(json_encode($value, JSON_PRETTY_PRINT)) . '</pre>';
+                                                                                    } else {
+                                                                                        echo 'Empty array';
+                                                                                    }
+                                                                                } else {
+                                                                                    echo htmlspecialchars($value);
+                                                                                } 
+                                                                                ?>
+                                                                            </li>
+                                                                        <?php endforeach; ?>
+                                                                    </ul>
+                                                                    
+                                                                    <?php if ($game['away']['error_details']['step'] === 'pool_lookup' && !empty($game['away']['error_details']['details']['attempted_matches'])): ?>
+                                                                        <p><strong>Attempted Pool Matches:</strong></p>
+                                                                        <ul>
+                                                                            <li>Exact match: "<?php echo htmlspecialchars($game['away']['error_details']['details']['attempted_matches']['exact']); ?>"</li>
+                                                                            <li>Normalized match: "<?php echo htmlspecialchars($game['away']['error_details']['details']['attempted_matches']['normalized']); ?>"</li>
+                                                                            <li>Pattern matches: 
+                                                                                <?php 
+                                                                                foreach ($game['away']['error_details']['details']['attempted_matches']['patterns'] as $pattern) {
+                                                                                    echo '"' . htmlspecialchars($pattern) . '", ';
+                                                                                }
+                                                                                ?>
+                                                                            </li>
+                                                                            <?php if (!empty($game['away']['error_details']['details']['attempted_matches']['division_formats'])): ?>
+                                                                                <li>Division formats: 
+                                                                                    <?php 
+                                                                                    foreach ($game['away']['error_details']['details']['attempted_matches']['division_formats'] as $format) {
+                                                                                        echo '"' . htmlspecialchars($format) . '", ';
+                                                                                    }
+                                                                                    ?>
+                                                                                </li>
+                                                                            <?php endif; ?>
+                                                                        </ul>
+                                                                    <?php endif; ?>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><span class="text-danger">Failed</span></td>
+                                    </tr>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <p>No failed placeholders detected.</p>
+            <?php endif; ?>
+            
+            <div class="alert alert-warning mt-3" style="color: #000; background-color: #ffeca8; border-color: #ffe38f;">
+                <strong>Possible Solutions:</strong>
+                <ol>
+                    <li>Make sure all pool games have results entered</li>
+                    <li>Check that teams are properly assigned to pools</li>
+                    <li>Verify that pool names in placeholders match pool names in the database (case-sensitive)</li>
+                    <li>For division-specific games, ensure the division in the placeholder matches the team's division</li>
+                    <li>For game winner placeholders, check that the referenced game has a winner recorded</li>
+                </ol>
+                <p class="mt-3 mb-0"><strong>Common Placeholder Format Examples:</strong></p>
+                <ul>
+                    <li><code>A1</code> - 1st place in Pool A</li>
+                    <li><code>B2</code> - 2nd place in Pool B</li>
+                    <li><code>u11 Pool A1</code> - 1st place in u11 Division Pool A</li>
+                    <li><code>u12 Pool B2</code> - 2nd place in u12 Division Pool B</li>
+                    <li><code>Winner of Game #30</code> - Winner of Game 30</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+    
     <!-- Edit form -->
     <?php if ($selectedGame): ?>
         <div class="card bg-dark mt-4">
@@ -684,6 +1221,35 @@ try {
 <!-- jQuery and Bootstrap JS -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+<!-- Diagnostics JS for collapsible details -->
+<script>
+    $(document).ready(function() {
+        // Initialize tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+        
+        // Fix for Bootstrap 5 collapse functionality with data-toggle attributes
+        $('[data-toggle="collapse"]').on('click', function() {
+            var target = $(this).data('target');
+            $(target).collapse('toggle');
+            return false;
+        });
+        
+        // Special handling for error details buttons to ensure they work
+        $('.error-details-btn').on('click', function() {
+            var target = $(this).data('target');
+            console.log("Toggling error details:", target);
+            $(target).collapse('toggle');
+        });
+        
+        // Special handling for pool details buttons
+        $('.pool-details-btn').on('click', function() {
+            var target = $(this).data('target');
+            console.log("Toggling pool details:", target);
+            $(target).collapse('toggle');
+        });
+    });
+</script>
 
 <!-- Navbar dynamic loading -->
 <script>

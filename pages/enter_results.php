@@ -1,10 +1,18 @@
 <?php
+session_start(); // Start the session
+
+// Check if user is logged in
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header('Location: admin.php');
+    exit;
+}
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Include the configuration file which sets the error log path
-require_once '/home/lostan6/springshootout.ca/includes/config.php';
+require_once __DIR__ . '/../includes/config.php';
 require __DIR__ . '/../scripts/php/db_connect.php'; // Include the database connection
 
 // Check if form is submitted to enter game results

@@ -5,7 +5,12 @@ session_start();
 $valid_username = 'admin';
 $valid_password = 'pass123!';
 
-if ($_POST['username'] == $valid_username && $_POST['password'] == $valid_password) {
+// Second set of credentials for scorer
+$scorer_username = 'scorer';
+$scorer_password = 'shootout';
+
+if (($_POST['username'] == $valid_username && $_POST['password'] == $valid_password) || 
+    ($_POST['username'] == $scorer_username && $_POST['password'] == $scorer_password)) {
     $_SESSION['logged_in'] = true;
 
     // // Temporary line for debugging

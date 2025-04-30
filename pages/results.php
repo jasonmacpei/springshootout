@@ -4,6 +4,20 @@ require_once '/home/lostan6/springshootout.ca/includes/config.php';
 require __DIR__ . '/../scripts/php/db_connect.php';
 error_log("Starting the results.php script.");
 
+// Helper function to format game category
+function formatGameCategory($category) {
+    // If null or empty, return empty string
+    if (empty($category)) {
+        return '';
+    }
+    
+    // Replace hyphens with spaces
+    $formatted = str_replace('-', ' ', $category);
+    
+    // Capitalize each word
+    return ucwords($formatted);
+}
+
 // Initialize the gamesByDate array
 $gamesByDate = [];
 
@@ -13,10 +27,12 @@ try {
     g.game_date,
     g.game_time,
     g.gym,
+    g.game_category,
     ht.team_name AS home_team_name,
     vt.team_name AS away_team_name,
     hgr.home_team_score,
     agr.away_team_score,
+    r.division,
     CONCAT(r.division, ' - Pool ', p.pool_name) AS division_section
 FROM
     schedule g
@@ -288,7 +304,17 @@ ORDER BY
                         <div class="score"><?php echo htmlentities($game['away_team_score']); ?></div>
                     </div>
                     <div class="division-final">
-                        <div class="division"><?php echo htmlentities($game['division_section']); ?></div>
+                        <div class="division">
+                        <?php 
+                        if (!empty($game['game_category']) && $game['game_category'] != 'pool') {
+                            // For playoff games, show only division + formatted game category
+                            echo htmlentities($game['division'] . ' - ' . formatGameCategory($game['game_category']));
+                        } else {
+                            // For pool games, show the pool information
+                            echo htmlentities($game['division_section']);
+                        }
+                        ?>
+                        </div>
                         <div class="final-status">Final</div>
                     </div>
                 </div>

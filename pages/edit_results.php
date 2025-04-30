@@ -1,4 +1,12 @@
 <?php
+session_start(); // Start the session
+
+// Check if user is logged in
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header('Location: admin.php');
+    exit;
+}
+
 //edit_results.php
 require_once '/home/lostan6/springshootout.ca/includes/config.php';
 require __DIR__ . '/../scripts/php/db_connect.php'; // Include the database connection

@@ -1,4 +1,12 @@
 <?php
+session_start(); // Start the session
+
+// Check if user is logged in
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header('Location: admin.php');
+    exit;
+}
+
 // update_contacts.php
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);

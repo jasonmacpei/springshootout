@@ -25,8 +25,11 @@ function getStandingsByPoolId($pdo, $poolId) {
             registrations r ON t.team_id = r.team_id
         LEFT JOIN 
             game_results gr ON t.team_id = gr.team_id
+        LEFT JOIN
+            schedule s ON gr.game_id = s.game_id
         WHERE 
             r.year = 2025 AND r.status = 1 AND p.pool_id = :poolId
+            AND (gr.game_id IS NULL OR s.game_category = 'pool')
         GROUP BY 
             p.pool_name, t.team_id, t.team_name
         ORDER BY 
