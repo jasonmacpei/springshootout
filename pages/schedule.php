@@ -1,6 +1,7 @@
 <?php
 require_once '/home/lostan6/springshootout.ca/includes/config.php';
 require __DIR__ . '/../scripts/php/db_connect.php';
+require_once __DIR__ . '/../scripts/php/resolve_placeholder.php';
 
 error_log("Starting script");
 // Set up content type and error reporting based on the type of request
@@ -16,9 +17,11 @@ if ($isAjaxRequest) {
 error_log("Before database call");
 $gymFilter = isset($_GET['gym']) && $_GET['gym'] !== '' ? $_GET['gym'] : null;
 $divisionFilter = isset($_GET['division']) && $_GET['division'] !== '' ? $_GET['division'] : null;
+$categoryFilter = isset($_GET['category']) && $_GET['category'] !== '' ? $_GET['category'] : null;
 
-$query = "SELECT s.game_date, s.game_time, h.team_name AS home_team_name, s.home_uniform,
-a.team_name AS away_team_name, s.away_uniform, s.gym, s.game_type
+$query = "SELECT s.game_id, s.game_date, s.game_time, h.team_name AS home_team_name, s.home_team_id, s.home_uniform,
+a.team_name AS away_team_name, s.away_team_id, s.away_uniform, s.gym, s.game_type, 
+s.placeholder_home, s.placeholder_away, s.game_category
 FROM schedule s
 LEFT JOIN teams h ON s.home_team_id = h.team_id
 LEFT JOIN teams a ON s.away_team_id = a.team_id";
@@ -40,6 +43,16 @@ if ($divisionFilter && $divisionFilter !== 'All Divisions') {
     $query .= " s.game_type LIKE :divisionFilter";
 }
 
+if ($categoryFilter && $categoryFilter !== 'All Categories') {
+    if ($whereAdded) {
+        $query .= " AND";
+    } else {
+        $query .= " WHERE";
+        $whereAdded = true;
+    }
+    $query .= " s.game_category = :categoryFilter";
+}
+
 $query .= " ORDER BY s.game_date, s.game_time;";
 $stmt = $pdo->prepare($query);
 
@@ -52,12 +65,16 @@ if ($divisionFilter && $divisionFilter !== 'All Divisions') {
     $stmt->bindParam(':divisionFilter', $divisionFilterParam);
 }
 
+if ($categoryFilter && $categoryFilter !== 'All Categories') {
+    $stmt->bindParam(':categoryFilter', $categoryFilter);
+}
+
 try {
     $stmt->execute();
     $scheduleRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     error_log('Fetched rows: ' . print_r($scheduleRows, true)); // This will log the fetched data
       // Before sending the response
-      $htmlOutput = buildScheduleTableBody($scheduleRows);
+      $htmlOutput = buildScheduleTableBody($scheduleRows, $pdo);
       error_log('HTML Output: ' . $htmlOutput); // This will log the generated HTML
       
 } catch (PDOException $e) {
@@ -76,7 +93,7 @@ try {
 if ($isAjaxRequest) {
   header('Content-Type: application/json'); // This ensures the client will treat the response as JSON
   // No need for ob_end_clean() since we haven't started output buffering
-  echo json_encode(['html' => buildScheduleTableBody($scheduleRows)]);
+  echo json_encode(['html' => buildScheduleTableBody($scheduleRows, $pdo)]);
   exit;
 }
 
@@ -84,7 +101,7 @@ error_log("After database call");
 if ($isAjaxRequest) {
     error_log("Inside isAjaxRequest");
     header('Content-Type: application/json');
-    echo json_encode(['html' => buildScheduleTableBody($scheduleRows)]);
+    echo json_encode(['html' => buildScheduleTableBody($scheduleRows, $pdo)]);
     exit;
 }
 
@@ -187,21 +204,60 @@ try {
     $u13Pools = [];
 }
 
-function buildScheduleTableBody($rows) {
+function buildScheduleTableBody($rows, $pdo) {
   error_log("Inside Function buildScheduleTableBody");
     $htmlOutput = '';
     foreach ($rows as $row) {
         $htmlOutput .= "<tr>";
+        // Add Game # column
+        $htmlOutput .= "<td><strong>#" . htmlspecialchars($row['game_id']) . "</strong></td>";
         $htmlOutput .= "<td>" . htmlspecialchars($row['game_date']) . "</td>";
         // Format the time
         $time = new DateTime($row['game_time']);
         $formattedTime = $time->format('g:i a');  // Formats to h:mm am/pm
         
         $htmlOutput .= "<td>" . htmlspecialchars($formattedTime) . "</td>";
-        $htmlOutput .= "<td>" . ($row['home_team_name'] ? htmlspecialchars($row['home_team_name']) : 'TBD') . "</td>";
-        $htmlOutput .= "<td>" . ($row['away_team_name'] ? htmlspecialchars($row['away_team_name']) : 'TBD') . "</td>";
+        
+        // Handle home team display with placeholders
+        if (!empty($row['placeholder_home'])) {
+            $homeTeamDisplay = getTeamDisplayWithPlaceholder(
+                $pdo, 
+                $row['placeholder_home'], 
+                $row['home_team_name'], 
+                $row['home_team_id'],
+                2025
+            );
+            $htmlOutput .= "<td>" . $homeTeamDisplay . "</td>";
+        } else {
+            $htmlOutput .= "<td>" . ($row['home_team_name'] ? htmlspecialchars($row['home_team_name']) : 'TBD') . "</td>";
+        }
+        
+        // Handle away team display with placeholders
+        if (!empty($row['placeholder_away'])) {
+            $awayTeamDisplay = getTeamDisplayWithPlaceholder(
+                $pdo, 
+                $row['placeholder_away'], 
+                $row['away_team_name'], 
+                $row['away_team_id'],
+                2025
+            );
+            $htmlOutput .= "<td>" . $awayTeamDisplay . "</td>";
+        } else {
+            $htmlOutput .= "<td>" . ($row['away_team_name'] ? htmlspecialchars($row['away_team_name']) : 'TBD') . "</td>";
+        }
+        
         $htmlOutput .= "<td>" . htmlspecialchars($row['gym']) . "</td>";
-        $htmlOutput .= "<td>" . htmlspecialchars($row['game_type']) . "</td>";
+        
+        // Add game category as a CSS class for styling
+        $gameTypeClass = 'game-' . strtolower($row['game_category']);
+        $htmlOutput .= "<td class='" . $gameTypeClass . "'>" . htmlspecialchars($row['game_type']);
+        
+        // Show game category if not "pool"
+        if ($row['game_category'] != 'pool') {
+            $htmlOutput .= " <span class='game-category'>(" . ucfirst(htmlspecialchars($row['game_category'])) . ")</span>";
+        }
+        
+        $htmlOutput .= "</td>";
         $htmlOutput .= "</tr>";
     }
     return $htmlOutput;
@@ -239,6 +295,60 @@ error_log("End PHP script");
                   white-space: nowrap;
                   overflow: hidden;
                   text-overflow: ellipsis;
+              }
+              
+              /* Styling for placeholders */
+              .placeholder-code {
+                  font-size: 0.8em;
+                  color: #aaa;
+              }
+              
+              .placeholder-unresolved {
+                  color: #ff9900;
+                  font-weight: bold;
+              }
+              
+              /* Game category styling */
+              .game-crossover {
+                  background-color: rgba(255, 170, 0, 0.1);
+              }
+              
+              .game-quarterfinal {
+                  background-color: rgba(0, 170, 255, 0.1);
+              }
+              
+              .game-semifinal {
+                  background-color: rgba(170, 0, 255, 0.1);
+              }
+              
+              .game-final {
+                  background-color: rgba(255, 0, 0, 0.1);
+              }
+              
+              .game-consolation-semifinal {
+                  background-color: rgba(108, 117, 125, 0.1);
+              }
+              
+              .game-consolation-final {
+                  background-color: rgba(40, 167, 69, 0.1);
+              }
+              
+              .game-category {
+                  font-size: 0.8em;
+                  font-style: italic;
+                  color: #aaa;
+              }
+              
+              /* Game ID column styling */
+              .table td:first-child {
+                  font-weight: bold;
+                  background-color: rgba(255, 255, 255, 0.05);
+                  text-align: center;
+              }
+              
+              .table th:first-child {
+                  text-align: center;
+                  background-color: #23272b;
               }
 
       @media (max-width: 850px) {
@@ -549,6 +659,22 @@ error_log("End PHP script");
                     </select>
                 </div>
             </div>
+            
+            <div class="filter-item">
+                <label for="categoryFilter" class="select-label">Game Type:</label>
+                <div class="select-wrap">
+                    <select id="categoryFilter" class="form-control" onchange="filterSchedule()">
+                        <option value="">All Categories</option>
+                        <option value="pool">Pool Play</option>
+                        <option value="crossover">Crossover</option>
+                        <option value="quarterfinal">Quarterfinals</option>
+                        <option value="semifinal">Semifinals</option>
+                        <option value="consolation-semifinal">Consolation Semifinals</option>
+                        <option value="consolation-final">Consolation Final</option>
+                        <option value="final">Finals</option>
+                    </select>
+                </div>
+            </div>
 
               <!-- <a href="../files/combined.pdf" class="btn btn-primary mb-3 btn-download">Download as PDF</a> -->
         </div>
@@ -557,6 +683,7 @@ error_log("End PHP script");
           <table class="table table-striped table-white">
               <thead class="thead-dark">
                   <tr>
+                      <th>Game #</th>
                       <th>Date</th>
                       <th>Time</th>
                       <th>Home Team</th>
@@ -591,9 +718,12 @@ error_log("End PHP script");
 function filterSchedule() {
     var gym = document.getElementById('gymFilter').value;
     var division = document.getElementById('divisionFilter').value;
+    var category = document.getElementById('categoryFilter').value;
     
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'schedule.php?gym=' + encodeURIComponent(gym) + '&division=' + encodeURIComponent(division), true);
+    xhr.open('GET', 'schedule.php?gym=' + encodeURIComponent(gym) + 
+                   '&division=' + encodeURIComponent(division) + 
+                   '&category=' + encodeURIComponent(category), true);
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
     // This event handler will log all responses, which can help with debugging

@@ -96,118 +96,124 @@ ORDER BY
     <!-- Custom styles if needed -->
     <link rel="stylesheet" href="../assets/css/style.css">
   <style>
-<style>
-
 .results-container {
     display: flex;
-    flex-wrap: wrap; /* Allows cards to wrap onto the next line */
-    justify-content: flex-start; /* Align items to the start of the container */
-    margin: 0 auto; /* Center the container */
-    padding: 10px; /* Padding inside the container */
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 0 auto;
+    padding: 10px;
+    max-width: 1200px;
 }
 
 .results-card {
     background-color: white;
-    border: 1px solid #ccc;
-    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 15px;
     box-sizing: border-box;
-    width: 400px; /* Fixed width */
-    margin: 10px; /* Consistent margin around cards */
-    flex-shrink: 0; /* Prevents the flex item from shrinking */
+    width: 100%;
+    max-width: 400px;
+    margin: 10px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.results-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
 }
 
 .results-date {
-    width: 300px; /* Initial width for large screens */
-    background-color: lightgray; /* White background for the outer box */
-    border: 8px solid white; /* Sets a 20px wide solid white border */
-    color: black; /* Black font color */
-    font-size: 1.25em; /* 2em font size */
-    padding: 5px; /* Padding around the text */
-    box-sizing: border-box; /* Includes padding in width calculation */
-    margin-bottom: 20px; /* Space below each date box */
-    float: left; /* Align the box to the left */
-    position: relative; /* Position relative for the inner positioning */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow for depth */
-    clear: both; /* Clears the floating effect of any preceding elements */
-}
-*/
-
-.results-date::after {
-    content: ""; /* Required for pseudo-elements */
-    background-color: grey; /* Grey background for the inner box */
-    position: absolute; /* Absolute position inside the parent */
-    top: 5px; /* Slightly lower than the top edge */
-    bottom: 5px; /* Slightly above the bottom edge */
-    left: 5px; /* Slightly right of the left edge */
-    right: 5px; /* Slightly left of the right edge */
-    z-index: -1; /* Place it behind the content */
-}
-
-.results-header {
+    width: 100%;
     background-color: #333;
     color: white;
-    padding: 10px;
-    font-size: 1.2rem;
-    width: 100%;
+    font-size: 1.25em;
+    padding: 10px 15px;
+    box-sizing: border-box;
+    margin: 15px 0;
+    border-radius: 8px;
     text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    clear: both;
 }
 
 .game-detail {
-    padding: 10px;
+    padding: 10px 5px;
 }
 
 .game-time-location {
     font-weight: bold;
-    margin-bottom: 10px; /* Space between game time/location and team names */
-    
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
 }
 
 .team-score-container {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    padding: 5px 0;
 }
 
 .team-name {
     flex-grow: 1;
     text-align: left;
     color: orange;
+    font-weight: 500;
 }
 
 .score {
     flex-shrink: 0;
     text-align: right;
     color: black;
+    font-weight: bold;
+    padding-left: 10px;
 }
 
 .division-final {
-    background-color: lightgray;
+    background-color: #d9d9d9;
     display: flex;
     justify-content: space-between;
-    padding: 5px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-top: 10px;
 }
 
 .division {
     flex-grow: 1;
     text-align: left;
-    color: grey;
+    color: #666;
+    font-size: 0.9em;
 }
 
 .final-status {
     flex-shrink: 0;
     text-align: right;
     color: black;
+    font-weight: bold;
 }
-@media (max-width: 850px) {
+
+/* Media queries for responsive adjustments */
+@media (min-width: 768px) {
+    .results-container {
+        justify-content: space-between;
+    }
+    
     .results-card {
-        width: 400; /* Full width for smaller screens */
-        margin: 10px 0; /* Adjust margin for vertical stacking */
+        width: calc(50% - 20px);
+    }
+    
+    .results-date {
+        width: 100%;
     }
 }
-/* Media queries for responsive adjustments */
-@media (max-width: 768px) {
+
+@media (max-width: 767px) {
     .results-card {
-        padding: 5px;
+        width: 100%;
+        max-width: 450px;
+        margin: 10px auto;
     }
     
     .results-header {
@@ -219,31 +225,27 @@ ORDER BY
     }
     
     .team-name, .score {
-        font-size: 0.85rem;
-    }
-    .results-date {
-    width: 250px; /* Initial width for large screens */
-    font-size: 1.0em; /* 2em font size */
+        font-size: 0.95rem;
     }
 }
 
 @media (max-width: 576px) {
+    .results-card {
+        padding: 10px;
+    }
+    
     .results-header {
         font-size: 0.9rem;
     }
     
     .game-time-location, .division, .final-status, .team-name, .score {
-        font-size: 0.8rem;
+        font-size: 0.85rem;
     }
+    
     .results-date {
-        width: 200px; /* Initial width for large screens */
-    font-size: 0.75em; /* 2em font size */
+        font-size: 1em;
     }
 }
-
-</style>
-
-
 </style>
 </head>
 
@@ -265,29 +267,28 @@ ORDER BY
 <div class="results-container">
     <?php foreach ($gamesByDate as $date => $games): ?>
         <div class="results-date">
-        <?php echo htmlentities($date); ?>
-    </div>
-    <div style="clear: both;"></div> <!-- Clears the floating effect -->
-    <?php foreach ($games as $game): ?>
-        <div class="results-card">
-            <div class="game-time-location">
-                <?php
-                // Convert and format the game time
-                $formattedTime = date('g:i A', strtotime($game['game_time']));
-                echo htmlentities($formattedTime . ' @ ' . $game['gym']);
-                ?>
-            </div>
+            <?php echo htmlentities($date); ?>
+        </div>
+        <?php foreach ($games as $game): ?>
+            <div class="results-card">
+                <div class="game-time-location">
+                    <?php
+                    // Convert and format the game time
+                    $formattedTime = date('g:i A', strtotime($game['game_time']));
+                    echo htmlentities($formattedTime . ' @ ' . $game['gym']);
+                    ?>
+                </div>
                 <div class="game-detail">
                     <div class="team-score-container">
-                        <div class="team-name" style="color: orange;"><?php echo htmlentities($game['home_team_name']); ?></div>
-                        <div class="score" style="color: black;"><?php echo htmlentities($game['home_team_score']); ?></div>
+                        <div class="team-name"><?php echo htmlentities($game['home_team_name']); ?></div>
+                        <div class="score"><?php echo htmlentities($game['home_team_score']); ?></div>
                     </div>
                     <div class="team-score-container">
-                        <div class="team-name" style="color: orange;"><?php echo htmlentities($game['away_team_name']); ?></div>
-                        <div class="score" style="color: black;"><?php echo htmlentities($game['away_team_score']); ?></div>
+                        <div class="team-name"><?php echo htmlentities($game['away_team_name']); ?></div>
+                        <div class="score"><?php echo htmlentities($game['away_team_score']); ?></div>
                     </div>
                     <div class="division-final">
-                        <div class="division" style="color: grey;"><?php echo htmlentities($game['division_section']); ?></div>
+                        <div class="division"><?php echo htmlentities($game['division_section']); ?></div>
                         <div class="final-status">Final</div>
                     </div>
                 </div>
@@ -304,7 +305,6 @@ ORDER BY
   <script>
     $(document).ready(function() {
         $("#nav-placeholder").load("../includes/navbar.html");
-        filterSchedule(); // This will load the full schedule when the page loads
     });
   </script>
 

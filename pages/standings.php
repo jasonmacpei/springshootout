@@ -7,6 +7,7 @@ function getStandingsByPoolId($pdo, $poolId) {
     $stmt = $pdo->prepare("
         SELECT 
             p.pool_name,
+            t.team_id,
             t.team_name,
             COALESCE(COUNT(gr.game_id), 0) AS games_played,
             COALESCE(SUM(gr.win), 0) AS wins,
@@ -27,7 +28,7 @@ function getStandingsByPoolId($pdo, $poolId) {
         WHERE 
             r.year = 2025 AND r.status = 1 AND p.pool_id = :poolId
         GROUP BY 
-            p.pool_name, t.team_name
+            p.pool_name, t.team_id, t.team_name
         ORDER BY 
             wins DESC, plus_minus DESC, points_for DESC
     ");
@@ -138,89 +139,177 @@ foreach ($divisions as $division) {
     }
     .container-fluid {
         padding-top: 30px;
+        max-width: 1400px;
+        margin: 0 auto;
     }
     .pool-table-container {
-        overflow-x: auto;
+        overflow-x: auto; /* Allow scrolling on very small screens as a fallback */
+        background-color: #1a1a1a;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        margin-bottom: 30px;
+        padding: 5px;
+        transition: all 0.3s ease;
     }
+
+    @media (min-width: 576px) {
+        /* On screens wider than 576px, we can fit everything without scrolling */
+        .pool-table-container {
+            overflow-x: hidden;
+        }
+    }
+
     .pool-table {
         width: 100%;
-        margin-bottom: 40px;
-        table-layout: fixed;
+        margin-bottom: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 450px; /* Ensures we don't go too narrow */
     }
-    .pool-table th {
-        padding: 0.5em;
+    .pool-table thead th {
+        background-color: #2a2a2a;
+        color: #fff;
+        border-bottom: 2px solid #FF6B00;
+        padding: 8px 2px;
         text-align: center;
+        font-weight: 600;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+    .pool-table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+    .pool-table tbody tr:nth-child(odd) {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    .pool-table tbody tr:nth-child(even) {
+        background-color: rgba(255, 255, 255, 0.02);
+    }
+    .pool-table tbody tr:hover {
+        background-color: rgba(255, 107, 0, 0.1);
     }
     .pool-table td {
-        padding: 0.5em;
+        padding: 8px 2px;
         text-align: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    .pool-table td.team-name {
-        text-align: left; /* Left-align text for team name cells */
-        white-space: nowrap; /* Ensure the team name does not wrap */
+    .pool-table th.team-name, .pool-table td.team-name {
+        width: 140px; /* Fixed width for team name column */
+        min-width: 140px; /* Ensure it doesn't get smaller */
+        text-align: left;
+        position: relative;
+        padding-left: 15px;
     }
-    .pool-table .team-name {
-      text-align: left; /* Align team names to the left */
-        width: 230px;
-        min-width: 160px; /* Minimum width for team name column on smaller screens */
-        white-space: nowrap; /* Ensure the team name does not wrap */
-        overflow: hidden;
-        text-overflow: ellipsis;
+    .pool-table th.stat, .pool-table td.stat {
+        width: auto; /* Let the browser determine optimal width */
+        min-width: 35px; /* Ensure a minimum width */
+    }
+    /* Position indicators for top 3 teams */
+    .position-1 .team-name::before,
+    .position-2 .team-name::before,
+    .position-3 .team-name::before {
+        content: "";
+        position: absolute;
+        left: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+    }
+    .position-1 .team-name::before {
+        background-color: #FFD700; /* Gold */
+    }
+    .position-2 .team-name::before {
+        background-color: #C0C0C0; /* Silver */
+    }
+    .position-3 .team-name::before {
+        background-color: #CD7F32; /* Bronze */
     }
     .pool-heading {
-        background-color: #000;
+        background-color: #2d2d2d;
         color: #fff;
         font-size: 1.2em;
-        padding: 0.5em;
-        margin-top: 1em;
+        padding: 12px 15px;
+        margin-bottom: 0;
         text-align: center;
         display: block;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+        border-left: 3px solid #FF6B00;
+        border-right: 3px solid #FF6B00;
+        border-top: 3px solid #FF6B00;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
     }
     .division-heading {
-        background-color: #343a40;
+        background: linear-gradient(135deg, #333333 0%, #222222 100%);
         color: #fff;
         font-size: 1.5em;
-        padding: 0.7em;
-        margin-top: 1.5em;
-        margin-bottom: 1em;
+        padding: 15px;
+        margin-top: 30px;
+        margin-bottom: 20px;
         text-align: center;
         display: block;
-        border-radius: 5px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border-left: 5px solid #FF6B00;
+        position: relative;
+        overflow: hidden;
+    }
+    .division-heading::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 5px;
+        background-color: #FF6B00;
     }
     /* Adjusting the team name column width and table font sizes on smaller screens */
     @media (max-width: 1200px) {
         .pool-table th, .pool-table td {
-            font-size: 0.9em; /* Adjusting font size as the screen gets smaller */
+            font-size: 0.9em;
         }
         .pool-table .team-name {
-            width: 200px; /* Adjust width for medium screens */
+            width: 200px;
         }
     }
     @media (max-width: 992px) {
         .pool-table .team-name {
-            width: 180px; /* Adjust width for small screens */
+            width: 180px;
         }
     }
     @media (max-width: 768px) {
         .pool-table th, .pool-table td {
-            font-size: 0.8em; /* Smaller font size for very small screens */
+            font-size: 0.8em;
+            padding: 8px 5px;
+        }
+        .division-heading {
+            font-size: 1.3em;
+            padding: 12px;
         }
     }
     @media (max-width: 576px) {
         .pool-table th, .pool-table td {
-            font-size: 0.75em; /* Smallest font size for the smallest screens */
+            font-size: 0.75em;
+            padding: 6px 4px;
         }
         .pool-table .team-name {
-            width: 160px; /* Enforce the smallest width for team name column */
+            width: 160px;
         }
         .pool-heading {
-            font-size: 1em; /* Smaller font size for pool headings on the smallest screens */
+            font-size: 1em;
+            padding: 10px;
+        }
+        .division-heading {
+            font-size: 1.1em;
+            padding: 10px;
         }
     }
     </style>
@@ -260,9 +349,45 @@ foreach ($divisions as $division) {
                 <div class="row">
                     <?php for ($j = $i; $j < min($i + 2, $poolCount); $j++): // Process this pair of pools ?>
                         <div class="col-lg-<?php echo $colSize; ?> col-md-12">
+                            <h3 class="pool-heading">Pool <?php echo htmlspecialchars($poolsData[$j]['pool_name']); ?></h3>
                             <div class="pool-table-container">
-                                <h3 class="pool-heading">Pool <?php echo htmlspecialchars($poolsData[$j]['pool_name']); ?></h3>
-                                <?php echo createStandingsTable($poolsData[$j]['standings']); ?>
+                                <?php 
+                                // Get standings data for this pool
+                                $poolStandings = $poolsData[$j]['standings'];
+                                
+                                if (empty($poolStandings)): ?>
+                                    <div class="alert alert-info">No teams assigned to this pool yet.</div>
+                                <?php else: ?>
+                                    <table class="table table-dark pool-table">
+                                        <thead>
+                                            <tr>
+                                                <th class="team-name">Team Name</th>
+                                                <th class="stat">G</th>
+                                                <th class="stat">W</th>
+                                                <th class="stat">L</th>
+                                                <th class="stat">PF</th>
+                                                <th class="stat">PA</th>
+                                                <th class="stat">+/-</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($poolStandings as $index => $row): 
+                                                // Add position class for top 3 teams
+                                                $positionClass = ($index < 3) ? 'position-' . ($index + 1) : '';
+                                            ?>
+                                                <tr class="<?php echo $positionClass; ?>">
+                                                    <td class="team-name"><?php echo htmlspecialchars($row['team_name']); ?></td>
+                                                    <td class="stat"><?php echo $row['games_played']; ?></td>
+                                                    <td class="stat"><?php echo $row['wins']; ?></td>
+                                                    <td class="stat"><?php echo $row['losses']; ?></td>
+                                                    <td class="stat"><?php echo $row['points_for']; ?></td>
+                                                    <td class="stat"><?php echo $row['points_against']; ?></td>
+                                                    <td class="stat"><?php echo $row['plus_minus']; ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endfor; ?>

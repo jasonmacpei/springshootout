@@ -89,6 +89,10 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                     <td><a href="./edit_schedule.php" class="btn btn-primary">Edit Schedule</a></td>
                 </tr>
                 <tr>
+                    <td>Setup Playoffs</td>
+                    <td><a href="./playoff_setup.php" class="btn btn-primary">Setup Playoffs</a></td>
+                </tr>
+                <tr>
                     <td>Enter Results</td>
                     <td><a href="./enter_results.php" class="btn btn-primary">Enter Results</a></td>
                 </tr>
