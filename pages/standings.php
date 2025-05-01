@@ -9,7 +9,7 @@ function getStandingsByPoolId($pdo, $poolId) {
             p.pool_name,
             t.team_id,
             t.team_name,
-            COALESCE(COUNT(gr.game_id), 0) AS games_played,
+            COALESCE(COUNT(DISTINCT gr.game_id), 0) AS games_played,
             COALESCE(SUM(gr.win), 0) AS wins,
             COALESCE(SUM(gr.loss), 0) AS losses,
             COALESCE(SUM(gr.points_for), 0) AS points_for,
@@ -26,10 +26,9 @@ function getStandingsByPoolId($pdo, $poolId) {
         LEFT JOIN 
             game_results gr ON t.team_id = gr.team_id
         LEFT JOIN
-            schedule s ON gr.game_id = s.game_id
+            schedule s ON gr.game_id = s.game_id AND s.game_category = 'pool'
         WHERE 
             r.year = 2025 AND r.status = 1 AND p.pool_id = :poolId
-            AND (gr.game_id IS NULL OR s.game_category = 'pool')
         GROUP BY 
             p.pool_name, t.team_id, t.team_name
         ORDER BY 

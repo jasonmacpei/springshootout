@@ -281,46 +281,54 @@ ORDER BY
 
 <h1>Results</h1>
 <div class="results-container">
-    <?php foreach ($gamesByDate as $date => $games): ?>
-        <div class="results-date">
-            <?php echo htmlentities($date); ?>
+    <?php if (empty($gamesByDate)): ?>
+        <div class="alert alert-info text-center w-100 p-5 my-5" style="background-color: #1a1a1a; color: white; border: none; border-radius: 12px; max-width: 800px; margin-left: auto; margin-right: auto; border-left: 5px solid #FF6B00;">
+            <h3 class="mb-3">No games played</h3>
+            <p class="mb-1" style="font-size: 1.1rem;">Please check back after tournament play starts on May 2, 2025 at 4:00pm.</p>
+            <p style="font-size: 1.1rem;">Results should populate around 5:30pm</p>
         </div>
-        <?php foreach ($games as $game): ?>
-            <div class="results-card">
-                <div class="game-time-location">
-                    <?php
-                    // Convert and format the game time
-                    $formattedTime = date('g:i A', strtotime($game['game_time']));
-                    echo htmlentities($formattedTime . ' @ ' . $game['gym']);
-                    ?>
-                </div>
-                <div class="game-detail">
-                    <div class="team-score-container">
-                        <div class="team-name"><?php echo htmlentities($game['home_team_name']); ?></div>
-                        <div class="score"><?php echo htmlentities($game['home_team_score']); ?></div>
-                    </div>
-                    <div class="team-score-container">
-                        <div class="team-name"><?php echo htmlentities($game['away_team_name']); ?></div>
-                        <div class="score"><?php echo htmlentities($game['away_team_score']); ?></div>
-                    </div>
-                    <div class="division-final">
-                        <div class="division">
-                        <?php 
-                        if (!empty($game['game_category']) && $game['game_category'] != 'pool') {
-                            // For playoff games, show only division + formatted game category
-                            echo htmlentities($game['division'] . ' - ' . formatGameCategory($game['game_category']));
-                        } else {
-                            // For pool games, show the pool information
-                            echo htmlentities($game['division_section']);
-                        }
-                        ?>
-                        </div>
-                        <div class="final-status">Final</div>
-                    </div>
-                </div>
+    <?php else: ?>
+        <?php foreach ($gamesByDate as $date => $games): ?>
+            <div class="results-date">
+                <?php echo htmlentities($date); ?>
             </div>
+            <?php foreach ($games as $game): ?>
+                <div class="results-card">
+                    <div class="game-time-location">
+                        <?php
+                        // Convert and format the game time
+                        $formattedTime = date('g:i A', strtotime($game['game_time']));
+                        echo htmlentities($formattedTime . ' @ ' . $game['gym']);
+                        ?>
+                    </div>
+                    <div class="game-detail">
+                        <div class="team-score-container">
+                            <div class="team-name"><?php echo htmlentities($game['home_team_name']); ?></div>
+                            <div class="score"><?php echo htmlentities($game['home_team_score']); ?></div>
+                        </div>
+                        <div class="team-score-container">
+                            <div class="team-name"><?php echo htmlentities($game['away_team_name']); ?></div>
+                            <div class="score"><?php echo htmlentities($game['away_team_score']); ?></div>
+                        </div>
+                        <div class="division-final">
+                            <div class="division">
+                            <?php 
+                            if (!empty($game['game_category']) && $game['game_category'] != 'pool') {
+                                // For playoff games, show only division + formatted game category
+                                echo htmlentities($game['division'] . ' - ' . formatGameCategory($game['game_category']));
+                            } else {
+                                // For pool games, show the pool information
+                                echo htmlentities($game['division_section']);
+                            }
+                            ?>
+                            </div>
+                            <div class="final-status">Final</div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         <?php endforeach; ?>
-    <?php endforeach; ?>
+    <?php endif; ?>
 </div>
 
   <!-- jQuery for dynamic content loading -->
