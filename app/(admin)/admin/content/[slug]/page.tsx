@@ -1,6 +1,7 @@
 import { updateCmsPageAction } from "@/actions/cms";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { getCmsEditorPageBySlug } from "@/lib/db/queries/content";
+import { CmsEditorFormSections } from "./cms-editor-form";
 
 export default async function AdminContentEditorPage({
   params,
@@ -23,15 +24,6 @@ export default async function AdminContentEditorPage({
       </Card>
     );
   }
-
-  const sections: Array<{
-    id?: string;
-    heading: string;
-    body: string;
-    sortOrder: number;
-  }> = page.sections.length
-    ? [...page.sections, { id: undefined, heading: "", body: "", sortOrder: page.sections.length }]
-    : [{ id: undefined, heading: "", body: "", sortOrder: 0 }];
 
   return (
     <Card className="bg-white/6 text-white shadow-none ring-1 ring-white/10">
@@ -86,31 +78,7 @@ export default async function AdminContentEditorPage({
             <option value="published">Published</option>
           </select>
         </label>
-        <div className="space-y-4">
-          {sections.map((section, index) => (
-            <div className="rounded-3xl border border-white/12 bg-[#121d31] p-4" key={`${section.id ?? "new"}-${index}`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9fb2ce]">Section {index + 1}</p>
-              <div className="mt-4 grid gap-4">
-                <label className="grid gap-2 text-sm font-medium text-white">
-                  Heading
-                  <input
-                    className="rounded-2xl border border-white/12 bg-[#0d1525] px-4 py-3 text-white"
-                    defaultValue={section.heading}
-                    name="sectionHeading"
-                  />
-                </label>
-                <label className="grid gap-2 text-sm font-medium text-white">
-                  Body
-                  <textarea
-                    className="min-h-32 rounded-2xl border border-white/12 bg-[#0d1525] px-4 py-3 text-white"
-                    defaultValue={section.body}
-                    name="sectionBody"
-                  />
-                </label>
-              </div>
-            </div>
-          ))}
-        </div>
+        <CmsEditorFormSections initialSections={page.sections} />
         <button className="inline-flex rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#11182a]" type="submit">
           Save page
         </button>
