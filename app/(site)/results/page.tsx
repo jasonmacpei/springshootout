@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CompetitionPoweredNote } from "@/components/marketing/competition-powered-note";
 import { PageHero } from "@/components/marketing/page-hero";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,7 @@ export default async function ResultsPage() {
         description="Approved game results are published here as they clear the competition workflow."
       />
       <section className="mx-auto max-w-6xl px-6 pb-20 lg:px-10">
+        <CompetitionPoweredNote />
         <div className="grid gap-4">
           {results.map((result) => (
             <Card key={`${result.gamePublicId}-${result.teamName}`}>

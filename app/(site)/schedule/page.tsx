@@ -1,5 +1,4 @@
-import { AlertTriangle } from "lucide-react";
-
+import { CompetitionPoweredNote } from "@/components/marketing/competition-powered-note";
 import { PageHero } from "@/components/marketing/page-hero";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { getCompetitionProvider } from "@/lib/competition";
@@ -23,17 +22,7 @@ export default async function SchedulePage() {
         description="The full weekend schedule will publish here once the 2026 event feed opens. Until then, the latest available game cards appear below."
       />
       <section className="mx-auto max-w-6xl px-6 pb-20 lg:px-10">
-        <Card className="border-amber-300/60 bg-amber-50/80">
-          <div className="flex gap-4">
-            <AlertTriangle className="mt-1 h-5 w-5 text-amber-700" />
-            <div>
-              <CardTitle>Schedule publishing note</CardTitle>
-              <CardDescription className="text-amber-900/80">
-                Hoops Scorebook currently exposes the live/final game feed used below. A dedicated full-schedule endpoint will replace this interim view once it is available.
-              </CardDescription>
-            </div>
-          </div>
-        </Card>
+        <CompetitionPoweredNote />
         <div className="mt-6 grid gap-4">
           {schedule.map((game) => (
             <Card key={game.gamePublicId}>

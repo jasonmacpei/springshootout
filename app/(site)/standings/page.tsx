@@ -1,3 +1,4 @@
+import { CompetitionPoweredNote } from "@/components/marketing/competition-powered-note";
 import { PageHero } from "@/components/marketing/page-hero";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { getCompetitionProvider } from "@/lib/competition";
@@ -28,6 +29,7 @@ export default async function StandingsPage() {
         description="Pool tables update from the competition feed as games are approved through the event workflow."
       />
       <section className="mx-auto max-w-6xl px-6 pb-20 lg:px-10">
+        <CompetitionPoweredNote />
         <div className="grid gap-6 lg:grid-cols-2">
           {grouped.map((pool) => (
             <Card key={`${pool[0]?.divisionName}-${pool[0]?.poolName}`}>
