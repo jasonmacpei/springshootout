@@ -21,7 +21,7 @@ export default async function AdminContentPage() {
     <div className="grid gap-4 md:grid-cols-2">
       {pages.map((page) => (
         <Link href={`/admin/content/${page.slug}`} key={page.slug}>
-          <Card className="bg-white/6 text-white shadow-none ring-1 ring-white/10">
+          <Card className="bg-white/8 text-white shadow-none ring-1 ring-white/10 transition hover:bg-white/12 hover:ring-white/20">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <CardTitle className="text-white">{page.title}</CardTitle>
