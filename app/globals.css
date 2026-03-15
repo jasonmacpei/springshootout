@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fcfaf5;
+  --foreground: #182131;
+  --muted-foreground: #5d6574;
+  --surface: #efe8dc;
+  --surface-strong: #d8c4a8;
+  --border-strong: rgba(24, 33, 49, 0.16);
+  --accent: #b35c36;
+  --accent-foreground: #fff8f1;
+  --admin-bg: #0b1120;
+  --font-body: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-display: "Rockwell", "Georgia", serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), Arial, sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(179, 92, 54, 0.18);
+}

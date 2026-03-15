@@ -7,6 +7,12 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit;
 }
 
+// Check if user has admin role
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: enter_results.php');
+    exit;
+}
+
 // edit_welcome_email.php
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);

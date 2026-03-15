@@ -1,9 +1,11 @@
 <?php
 // db_connect.php
-$dbHost = 'localhost';
-$dbName = 'lostan6_shootout';
-$dbUser = 'lostan6_admin1';
-$dbPass = 'J0rdan23!';
+require_once __DIR__ . '/../../includes/config.php';
+
+$dbHost = DB_HOST;
+$dbName = DB_NAME;
+$dbUser = DB_USER;
+$dbPass = DB_PASS;
 
 $dsn = "pgsql:host=$dbHost;dbname=$dbName";
 try {

@@ -7,6 +7,12 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit;
 }
 
+// Check if user has admin role
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: enter_results.php');
+    exit;
+}
+
 //edit_results.php
 require_once '/home/lostan6/springshootout.ca/includes/config.php';
 require __DIR__ . '/../scripts/php/db_connect.php'; // Include the database connection
@@ -49,22 +55,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_result'])) {
     // Validation code goes here, ensure $game_id, $home_score, and $away_score are valid
 
     try {
-        $updateStmt = $pdo->prepare("UPDATE game_results SET points_for = :home_score, points_against = :away_score WHERE game_id = :game_id AND team_id = (SELECT home_team_id FROM schedule WHERE game_id = :game_id)");
+        // Begin transaction for consistency
+        $pdo->beginTransaction();
+        
+        // Determine the winner and loser based on new scores
+        $home_win = $home_score > $away_score ? 1 : 0;
+        $home_loss = $home_score < $away_score ? 1 : 0;
+        $away_win = $home_score < $away_score ? 1 : 0;
+        $away_loss = $home_score > $away_score ? 1 : 0;
+        
+        // Update home team result with win/loss values
+        $updateStmt = $pdo->prepare("UPDATE game_results SET 
+            points_for = :home_score, 
+            points_against = :away_score,
+            win = :home_win,
+            loss = :home_loss 
+            WHERE game_id = :game_id AND team_id = (SELECT home_team_id FROM schedule WHERE game_id = :game_id)");
         $updateStmt->execute([
             ':home_score' => $home_score,
             ':away_score' => $away_score,
+            ':home_win' => $home_win,
+            ':home_loss' => $home_loss,
             ':game_id' => $game_id
         ]);
 
-        $updateStmt = $pdo->prepare("UPDATE game_results SET points_for = :away_score, points_against = :home_score WHERE game_id = :game_id AND team_id = (SELECT away_team_id FROM schedule WHERE game_id = :game_id)");
+        // Update away team result with win/loss values
+        $updateStmt = $pdo->prepare("UPDATE game_results SET 
+            points_for = :away_score, 
+            points_against = :home_score,
+            win = :away_win,
+            loss = :away_loss
+            WHERE game_id = :game_id AND team_id = (SELECT away_team_id FROM schedule WHERE game_id = :game_id)");
         $updateStmt->execute([
             ':away_score' => $away_score,
             ':home_score' => $home_score,
+            ':away_win' => $away_win,
+            ':away_loss' => $away_loss,
             ':game_id' => $game_id
         ]);
+        
+        // Commit transaction
+        $pdo->commit();
 
         $success_message = "Game result updated successfully.";
     } catch (PDOException $e) {
+        // Rollback transaction on error
+        $pdo->rollBack();
         $error_message = "Error updating game result: " . $e->getMessage();
     }
 }

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/vendor/autoload.php'; // Adjust the path to your autoload.php
 
 use PHPMailer\PHPMailer\PHPMailer;
@@ -16,15 +17,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     try {
         // Server settings
         $mail->isSMTP();
-        $mail->Host = 'mail.springshootout.ca'; // Set the SMTP server to send through
+        $mail->Host = SMTP_HOST; // Set the SMTP server to send through
         $mail->SMTPAuth = true; // Enable SMTP authentication
-        $mail->Username = 'jason@springshootout.ca'; // SMTP username
-        $mail->Password = 'J0rdan23!'; // SMTP password
+        $mail->Username = SMTP_USER; // SMTP username
+        $mail->Password = SMTP_PASS; // SMTP password
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // Enable implicit TLS encryption
-        $mail->Port = 465; // TCP port to connect to; use 465 for `PHPMailer::ENCRYPTION_SMTPS` above
+        $mail->Port = SMTP_PORT; // TCP port to connect to; use 465 for `PHPMailer::ENCRYPTION_SMTPS` above
 
         // Recipients
-        $mail->setFrom('jason@springshootout.ca', 'Spring Shootout'); // TODO: Replace with your "from" address.
+        $mail->setFrom(ADMIN_EMAIL, 'Spring Shootout');
         $mail->addAddress($to); // Add a recipient
 
         // Content

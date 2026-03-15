@@ -7,6 +7,9 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit;
 }
 
+// Allow access for both admin and scorer roles
+// No additional role check needed for this page
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -67,7 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
               $pdo->commit();
               $success_message = "Game result entered successfully.";
-              header('Location: menu.php');
+              
+              // Redirect based on user role
+              if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
+                  header('Location: menu.php');
+              } else {
+                  // For scorer role or undefined roles, stay on the same page
+                  header('Location: enter_results.php');
+              }
               exit;
           } else {
               throw new Exception("No teams found for the provided game ID.");
@@ -151,6 +161,17 @@ try {
 <!-- Game selection and score entry form -->
 <div class="container">
     <h1 class="text-center mb-4">Enter Game Results</h1>
+    
+    <div class="mb-3 text-end">
+        <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'scorer'): ?>
+            <a href="../scripts/php/logout.php" class="btn btn-danger">Logout</a>
+        <?php endif; ?>
+        
+        <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+            <a href="./menu.php" class="btn btn-primary">Admin Menu</a>
+        <?php endif; ?>
+    </div>
+    
     <!-- ... Success/Error messages ... -->
 
     <form method="POST" action="enter_results.php">

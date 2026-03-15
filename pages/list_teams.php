@@ -7,6 +7,12 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit;
 }
 
+// Check if user has admin role
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: enter_results.php');
+    exit;
+}
+
 // list_teams.php
 // Display registered teams grouped dynamically by division
 

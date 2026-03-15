@@ -729,9 +729,10 @@ function resolveGameWinnerTeam(PDO $pdo, int $gameId, bool $debug = false): ?arr
  * @param string|null $teamName Team name if already assigned
  * @param int $teamId Team ID if already assigned
  * @param int $year Tournament year
+ * @param bool $checkPoolCompletion Whether to check if all pool games are complete before resolving pool placeholders
  * @return string Formatted HTML for displaying team
  */
-function getTeamDisplayWithPlaceholder(PDO $pdo, string $placeholder, ?string $teamName, ?int $teamId, int $year = 2025): string {
+function getTeamDisplayWithPlaceholder(PDO $pdo, string $placeholder, ?string $teamName, ?int $teamId, int $year = 2025, bool $checkPoolCompletion = true): string {
     if (!empty($teamName)) {
         // If team is already assigned, show "Team Name (A1)"
         return htmlspecialchars($teamName) . ' <span class="placeholder-code">(' . htmlspecialchars($placeholder) . ')</span>';
@@ -781,6 +782,16 @@ function getTeamDisplayWithPlaceholder(PDO $pdo, string $placeholder, ?string $t
         
         // If we can't resolve the game or there was an error, just show the placeholder
         return '<span class="placeholder-unresolved">' . htmlspecialchars($placeholder) . '</span>';
+    }
+    
+    // For pool position placeholders (A1, B2, etc.)
+    // First check if all pool games are complete when $checkPoolCompletion is true
+    if ($checkPoolCompletion) {
+        $poolGamesComplete = areAllPoolGamesComplete($pdo, $year);
+        if (!$poolGamesComplete) {
+            // If pool games are not complete, just show the placeholder without resolving
+            return '<span class="placeholder-unresolved">' . htmlspecialchars($placeholder) . '</span>';
+        }
     }
     
     // Handle standard pool position placeholders (A1, B2, etc.)

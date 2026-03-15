@@ -225,7 +225,8 @@ function buildScheduleTableBody($rows, $pdo) {
                 $row['placeholder_home'], 
                 $row['home_team_name'], 
                 $row['home_team_id'],
-                2025
+                2025,
+                true // Check pool completion before resolving
             );
             $htmlOutput .= "<td>" . $homeTeamDisplay . "</td>";
         } else {
@@ -239,7 +240,8 @@ function buildScheduleTableBody($rows, $pdo) {
                 $row['placeholder_away'], 
                 $row['away_team_name'], 
                 $row['away_team_id'],
-                2025
+                2025,
+                true // Check pool completion before resolving
             );
             $htmlOutput .= "<td>" . $awayTeamDisplay . "</td>";
         } else {

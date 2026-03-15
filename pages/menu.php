@@ -5,6 +5,12 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     header('Location: admin.php');
     exit;
 }
+
+// Check if user has admin role
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: enter_results.php');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -39,101 +45,102 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
   <div style="padding-top: 30px;">
     <hr>
   </div>
+  
   <div class="container mt-3">
-        <table class="table table-dark table-striped table-sm white-border">
-            <thead>
-                <tr>
-                    <th>Page</th>
-                    <th>Link</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>List of Teams</td>
-                    <td><a href="./list_teams.php" class="btn btn-primary">Teams</a></td>
-                </tr>
-                <tr>
-                    <td>List of Contacts</td>
-                    <td><a href="./list_contacts.php" class="btn btn-primary">Contacts</a></td>
-                </tr>
+    <table class="table table-dark table-striped table-sm white-border">
+        <thead>
+            <tr>
+                <th>Page</th>
+                <th>Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>List of Teams</td>
+                <td><a href="./list_teams.php" class="btn btn-primary">Teams</a></td>
+            </tr>
+            <tr>
+                <td>List of Contacts</td>
+                <td><a href="./list_contacts.php" class="btn btn-primary">Contacts</a></td>
+            </tr>
 
-                <tr>
-                    <td>Enter Additional Contacts</td>
-                    <td><a href="./add_contact_admin.php" class="btn btn-primary">Enter Additional Contacts</a></td>
-                </tr>
+            <tr>
+                <td>Enter Additional Contacts</td>
+                <td><a href="./add_contact_admin.php" class="btn btn-primary">Enter Additional Contacts</a></td>
+            </tr>
 
-                <tr>
-                    <td>Update Registrations</td>
-                    <td><a href="./update_registration.php" class="btn btn-primary">Update Registrations</a></td>
-                </tr>
+            <tr>
+                <td>Update Registrations</td>
+                <td><a href="./update_registration.php" class="btn btn-primary">Update Registrations</a></td>
+            </tr>
 
-                <tr>
-                    <td>Update Welcome Email</td>
-                    <td><a href="./edit_welcome_email.php" class="btn btn-primary">Update Welcome Email</a></td>
-                </tr>
+            <tr>
+                <td>Update Welcome Email</td>
+                <td><a href="./edit_welcome_email.php" class="btn btn-primary">Update Welcome Email</a></td>
+            </tr>
 
-                <tr>
-                    <td>Update Contacts</td>
-                    <td><a href="./update_contacts.php" class="btn btn-primary">Update Contacts</a></td>
-                </tr>
-                <tr>
-                    <td>Enter Schedule</td>
-                    <td><a href="./make_schedule.php" class="btn btn-primary">Make Schedule</a></td>
-                </tr>
-                <tr>
-                    <td>View Schedule</td>
-                    <td><a href="./schedule.php" class="btn btn-primary">View Schedule</a></td>
-                </tr>
-                <tr>
-                    <td>Edit Schedule</td>
-                    <td><a href="./edit_schedule.php" class="btn btn-primary">Edit Schedule</a></td>
-                </tr>
-                <tr>
-                    <td>Setup Playoffs</td>
-                    <td><a href="./playoff_setup.php" class="btn btn-primary">Setup Playoffs</a></td>
-                </tr>
-                <tr>
-                    <td>Enter Results</td>
-                    <td><a href="./enter_results.php" class="btn btn-primary">Enter Results</a></td>
-                </tr>
-                <tr>
-                    <td>Edit Results</td>
-                    <td><a href="./edit_results.php" class="btn btn-primary">Edit Results</a></td>
-                </tr>
-                <tr>
-                    <td>Manage Pools</td>
-                    <td><a href="./manage_pools.php" class="btn btn-primary">Manage Pools</a></td>
-                </tr>
-                <tr>
-                    <td>Assign Teams to Pools</td>
-                    <td><a href="./assign_pools.php" class="btn btn-primary">Assign Pools</a></td>
-                </tr>
-                <tr>
-                    <td>Enter Uniforms</td>
-                    <td><a href="./uniform.php" class="btn btn-primary">Enter Uniforms</a></td>
-                </tr>
-                <tr>
-                    <td>Send Email</td>
-                    <td><a href="./send_email.php" class="btn btn-primary">Send Email</a></td>
-                </tr>
+            <tr>
+                <td>Update Contacts</td>
+                <td><a href="./update_contacts.php" class="btn btn-primary">Update Contacts</a></td>
+            </tr>
+            <tr>
+                <td>Enter Schedule</td>
+                <td><a href="./make_schedule.php" class="btn btn-primary">Make Schedule</a></td>
+            </tr>
+            <tr>
+                <td>View Schedule</td>
+                <td><a href="./schedule.php" class="btn btn-primary">View Schedule</a></td>
+            </tr>
+            <tr>
+                <td>Edit Schedule</td>
+                <td><a href="./edit_schedule.php" class="btn btn-primary">Edit Schedule</a></td>
+            </tr>
+            <tr>
+                <td>Setup Playoffs</td>
+                <td><a href="./playoff_setup.php" class="btn btn-primary">Setup Playoffs</a></td>
+            </tr>
+            <tr>
+                <td>Enter Results</td>
+                <td><a href="./enter_results.php" class="btn btn-primary">Enter Results</a></td>
+            </tr>
+            <tr>
+                <td>Edit Results</td>
+                <td><a href="./edit_results.php" class="btn btn-primary">Edit Results</a></td>
+            </tr>
+            <tr>
+                <td>Manage Pools</td>
+                <td><a href="./manage_pools.php" class="btn btn-primary">Manage Pools</a></td>
+            </tr>
+            <tr>
+                <td>Assign Teams to Pools</td>
+                <td><a href="./assign_pools.php" class="btn btn-primary">Assign Pools</a></td>
+            </tr>
+            <tr>
+                <td>Enter Uniforms</td>
+                <td><a href="./uniform.php" class="btn btn-primary">Enter Uniforms</a></td>
+            </tr>
+            <tr>
+                <td>Send Email</td>
+                <td><a href="./send_email.php" class="btn btn-primary">Send Email</a></td>
+            </tr>
 
-                <tr>
-                    <td>Merge Duplicate Contacts</td>
-                    <td><a href="./merge_contacts.php" class="btn btn-primary">Merge Duplicate Contacts</a></td>
-                </tr>
+            <tr>
+                <td>Merge Duplicate Contacts</td>
+                <td><a href="./merge_contacts.php" class="btn btn-primary">Merge Duplicate Contacts</a></td>
+            </tr>
 
-                <tr>
-                    <td>Manage Team Contacts</td>
-                    <td><a href="./manage_team_contacts.php" class="btn btn-primary">Manage Team Contacts</a></td>
-                </tr>
+            <tr>
+                <td>Manage Team Contacts</td>
+                <td><a href="./manage_team_contacts.php" class="btn btn-primary">Manage Team Contacts</a></td>
+            </tr>
 
-                <tr>
-                    <td>Logout</td>
-                    <td><a href="../scripts/php/logout.php" class="btn btn-danger">Logout</a></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+            <tr>
+                <td>Logout</td>
+                <td><a href="../scripts/php/logout.php" class="btn btn-danger">Logout</a></td>
+            </tr>
+        </tbody>
+    </table>
+  </div>
 
 
   <!-- jQuery and Bootstrap JS -->

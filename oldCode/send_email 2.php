@@ -87,16 +87,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         try {
             // SMTP settings
             $mail->isSMTP();
-            $mail->Host = 'mail.springshootout.ca';
+            $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
-            $mail->Username = 'jason@springshootout.ca';
-            $mail->Password = 'J0rdan23!';
+            $mail->Username = SMTP_USER;
+            $mail->Password = SMTP_PASS;
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-            $mail->Port = 465;
+            $mail->Port = SMTP_PORT;
 
-            // Set "To" always as jason@springshootout.ca and add all recipients as BCC
-            $mail->setFrom('jason@springshootout.ca', 'Spring Shootout');
-            $mail->addAddress('jason@springshootout.ca'); // Primary "To" address
+            // Set "To" always as the configured admin email and add all recipients as BCC
+            $mail->setFrom(ADMIN_EMAIL, 'Spring Shootout');
+            $mail->addAddress(ADMIN_EMAIL); // Primary "To" address
             foreach ($recipients as $recipient) {
                 $mail->addBCC($recipient);
             }
