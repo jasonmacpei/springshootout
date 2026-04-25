@@ -7,12 +7,14 @@ import { Card } from "@/components/ui/card";
 import { getCompetitionProvider } from "@/lib/competition";
 import { getCompetitionEventSlugByLocalSlug } from "@/lib/db/queries/content";
 
+const tournamentTimeZone = "America/Halifax";
+
 function formatScheduleDate(date: string) {
   return new Intl.DateTimeFormat("en-CA", {
     month: "short",
     day: "numeric",
     weekday: "short",
-    timeZone: "UTC",
+    timeZone: tournamentTimeZone,
   }).format(new Date(date));
 }
 
@@ -20,7 +22,7 @@ function formatScheduleTime(date: string) {
   return new Intl.DateTimeFormat("en-CA", {
     hour: "numeric",
     minute: "2-digit",
-    timeZone: "UTC",
+    timeZone: tournamentTimeZone,
   }).format(new Date(date));
 }
 
