@@ -71,7 +71,6 @@ export default async function SchedulePage({
         description="Browse the full Spring Shootout schedule from Hoops Scorebook, with division filters for faster scanning."
       />
       <section className="mx-auto max-w-6xl px-6 pb-20 lg:px-10">
-        <CompetitionPoweredNote />
         <div className="mt-6 flex flex-wrap items-center gap-2">
           <Link
             className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
@@ -168,6 +167,9 @@ export default async function SchedulePage({
             />
           </div>
         )}
+        <div className="mt-8">
+          <CompetitionPoweredNote />
+        </div>
       </section>
     </>
   );

@@ -113,7 +113,30 @@ function groupStandings(standings: StandingRow[]) {
       acc[key].push(item);
       return acc;
     }, {}),
-  ).map((pool) => [...pool].sort((a, b) => a.rank - b.rank || a.teamName.localeCompare(b.teamName)));
+  )
+    .map((pool) => [...pool].sort((a, b) => a.rank - b.rank || a.teamName.localeCompare(b.teamName)))
+    .sort((a, b) => {
+      const divisionOrder =
+        (a[0]?.divisionId ?? Number.MAX_SAFE_INTEGER) - (b[0]?.divisionId ?? Number.MAX_SAFE_INTEGER);
+
+      if (divisionOrder !== 0) {
+        return divisionOrder;
+      }
+
+      const divisionNameOrder = (a[0]?.divisionName ?? "").localeCompare(b[0]?.divisionName ?? "");
+
+      if (divisionNameOrder !== 0) {
+        return divisionNameOrder;
+      }
+
+      const poolOrder = (a[0]?.poolId ?? Number.MAX_SAFE_INTEGER) - (b[0]?.poolId ?? Number.MAX_SAFE_INTEGER);
+
+      if (poolOrder !== 0) {
+        return poolOrder;
+      }
+
+      return (a[0]?.poolName ?? "").localeCompare(b[0]?.poolName ?? "");
+    });
 }
 
 function formatWinPct(row: StandingRow) {
@@ -153,7 +176,6 @@ export default async function StandingsPage() {
         description="Pool tables update from the competition feed as games are approved through the event workflow."
       />
       <section className="mx-auto max-w-6xl px-6 pb-20 lg:px-10">
-        <CompetitionPoweredNote />
         {grouped.length ? (
           <div className="grid gap-6">
             {grouped.map((pool) => (
@@ -206,6 +228,9 @@ export default async function StandingsPage() {
             title="No standings available yet"
           />
         )}
+        <div className="mt-8">
+          <CompetitionPoweredNote />
+        </div>
       </section>
     </>
   );
