@@ -9,6 +9,7 @@ import { logAuditEvent } from "@/lib/audit";
 import { createServerSupabaseClient } from "@/lib/db/server";
 import type { RegistrationAdminRow } from "@/lib/db/queries/content";
 import { createAdminSupabaseClient } from "@/lib/db/admin";
+import { addCampaignRecipient, type CampaignRecipient } from "@/lib/email/audience";
 import { createResendClient } from "@/lib/email/client";
 import { buildCampaignEmailContent } from "@/lib/email/render";
 import { appConfig } from "@/lib/config";
@@ -28,6 +29,8 @@ function redirectWithError(path: string, message: string): never {
 }
 
 const campaignAudienceScopes = ["all_contacts", "approved_only", "pending_only"] as const;
+type CampaignAudienceScope = (typeof campaignAudienceScopes)[number];
+type AdminSupabaseClient = NonNullable<ReturnType<typeof createAdminSupabaseClient>>;
 
 function normalizeAudienceScope(input: FormDataEntryValue | null) {
   const scope = String(input ?? "all_contacts").trim();
@@ -35,6 +38,85 @@ function normalizeAudienceScope(input: FormDataEntryValue | null) {
   return campaignAudienceScopes.includes(scope as (typeof campaignAudienceScopes)[number])
     ? (scope as (typeof campaignAudienceScopes)[number])
     : null;
+}
+
+async function loadCampaignAudience({
+  supabase,
+  eventId,
+  audienceScope,
+}: {
+  supabase: AdminSupabaseClient;
+  eventId: string;
+  audienceScope: CampaignAudienceScope;
+}) {
+  const uniqueRecipients = new Map<string, CampaignRecipient>();
+
+  if (audienceScope === "approved_only" || audienceScope === "pending_only") {
+    const targetStatus: RegistrationAdminRow["status"] =
+      audienceScope === "approved_only" ? "approved" : "pending";
+    const { data: registrations, error: registrationsError } = await supabase
+      .from("registrations")
+      .select("team_id, contacts!registrations_primary_contact_id_fkey(id, full_name, email)")
+      .eq("event_id", eventId)
+      .eq("status", targetStatus);
+
+    if (registrationsError) {
+      throw new Error(registrationsError.message);
+    }
+
+    (registrations ?? []).forEach((registration) => {
+      addCampaignRecipient(uniqueRecipients, registration.contacts);
+    });
+
+    const teamIds = Array.from(
+      new Set((registrations ?? []).map((row) => row.team_id).filter((teamId): teamId is string => Boolean(teamId))),
+    );
+
+    if (teamIds.length) {
+      const { data: teamContacts, error: teamContactsError } = await supabase
+        .from("team_contacts")
+        .select("contacts(id, full_name, email)")
+        .in("team_id", teamIds);
+
+      if (teamContactsError) {
+        throw new Error(teamContactsError.message);
+      }
+
+      (teamContacts ?? []).forEach((row) => {
+        addCampaignRecipient(uniqueRecipients, row.contacts);
+      });
+    }
+  } else {
+    const [{ data: teamContacts, error: teamContactsError }, { data: registrations, error: registrationsError }] =
+      await Promise.all([
+        supabase
+          .from("team_contacts")
+          .select("contacts(id, full_name, email), teams!inner(event_id)")
+          .eq("teams.event_id", eventId),
+        supabase
+          .from("registrations")
+          .select("contacts!registrations_primary_contact_id_fkey(id, full_name, email)")
+          .eq("event_id", eventId),
+      ]);
+
+    if (teamContactsError) {
+      throw new Error(teamContactsError.message);
+    }
+
+    if (registrationsError) {
+      throw new Error(registrationsError.message);
+    }
+
+    (teamContacts ?? []).forEach((row) => {
+      addCampaignRecipient(uniqueRecipients, row.contacts);
+    });
+
+    (registrations ?? []).forEach((registration) => {
+      addCampaignRecipient(uniqueRecipients, registration.contacts);
+    });
+  }
+
+  return Array.from(uniqueRecipients.values());
 }
 
 async function resolveEventRecord(client: NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>, eventSlug: string) {
@@ -1213,11 +1295,15 @@ export async function sendEmailCampaignAction(formData: FormData) {
     redirectWithError("/admin/email/campaigns", "Campaign audience is invalid.");
   }
 
-  const { data: campaign } = await supabase
+  const { data: campaign, error: campaignError } = await supabase
     .from("email_campaigns")
     .select("id, event_id, subject, content_html, content_text, status")
     .eq("id", campaignId)
     .maybeSingle();
+
+  if (campaignError) {
+    redirectWithError("/admin/email/campaigns", campaignError.message);
+  }
 
   if (!campaign) {
     redirectWithError("/admin/email/campaigns", "Campaign not found.");
@@ -1227,67 +1313,24 @@ export async function sendEmailCampaignAction(formData: FormData) {
     redirectWithError("/admin/email/campaigns", "Only draft campaigns can be sent.");
   }
 
-  let recipients:
-    | Array<{
-        contacts:
-          | { id: string | null; full_name: string | null; email: string | null }
-          | Array<{ id: string | null; full_name: string | null; email: string | null }>
-          | null;
-      }>
-    | null = null;
-
-  if (audienceScope === "approved_only" || audienceScope === "pending_only") {
-    const targetStatus: RegistrationAdminRow["status"] =
-      audienceScope === "approved_only" ? "approved" : "pending";
-    const { data: registrations } = await supabase
-      .from("registrations")
-      .select("team_id")
-      .eq("event_id", campaign.event_id)
-      .eq("status", targetStatus);
-
-    const teamIds = (registrations ?? []).map((row) => row.team_id);
-
-    recipients = teamIds.length
-      ? (
-          await supabase
-            .from("team_contacts")
-            .select("contacts(id, full_name, email)")
-            .in("team_id", teamIds)
-        ).data ?? null
-      : [];
-  } else {
-    recipients =
-      (
-        await supabase
-          .from("team_contacts")
-          .select("contacts(id, full_name, email), teams!inner(event_id)")
-          .eq("teams.event_id", campaign.event_id)
-      ).data ?? null;
+  if (!campaign.event_id) {
+    redirectWithError("/admin/email/campaigns", "Campaign is not linked to an event.");
   }
 
-  const uniqueRecipients = new Map<string, { contactId: string | null; name: string; email: string }>();
+  let audience: CampaignRecipient[] = [];
 
-  (recipients ?? []).forEach((row) => {
-    const contact = Array.isArray(row.contacts) ? row.contacts[0] : row.contacts;
-
-    if (!contact?.email) {
-      return;
-    }
-
-    const email = contact.email.trim().toLowerCase();
-
-    if (!email) {
-      return;
-    }
-
-    uniqueRecipients.set(email, {
-      contactId: contact.id ?? null,
-      name: contact.full_name ?? email,
-      email,
+  try {
+    audience = await loadCampaignAudience({
+      supabase,
+      eventId: campaign.event_id,
+      audienceScope,
     });
-  });
-
-  const audience = Array.from(uniqueRecipients.values());
+  } catch (error) {
+    redirectWithError(
+      "/admin/email/campaigns",
+      error instanceof Error ? error.message : "Could not resolve campaign audience.",
+    );
+  }
 
   if (!audience.length) {
     redirectWithError("/admin/email/campaigns", "No event contacts with email addresses were found.");
@@ -1298,6 +1341,22 @@ export async function sendEmailCampaignAction(formData: FormData) {
     htmlBody: campaign.content_html,
     textBody: campaign.content_text,
   });
+
+  const { data: claimedCampaign, error: claimError } = await supabase
+    .from("email_campaigns")
+    .update({ status: "scheduled" })
+    .eq("id", campaign.id)
+    .eq("status", "draft")
+    .select("id")
+    .maybeSingle();
+
+  if (claimError) {
+    redirectWithError("/admin/email/campaigns", claimError.message);
+  }
+
+  if (!claimedCampaign) {
+    redirectWithError("/admin/email/campaigns", "Campaign was already sent or is being sent.");
+  }
 
   await logAuditEvent(supabase, {
     actorUserId: session.user.id,
@@ -1310,16 +1369,8 @@ export async function sendEmailCampaignAction(formData: FormData) {
     },
   });
 
-  const queuedRows: Array<{
-    campaign_id: string;
-    recipient_email: string;
-    recipient_name: string;
-    provider_message_id: string | null;
-    delivery_status: string;
-    error_text: string | null;
-  }> = [];
-
   const chunkSize = 100;
+  let queuedCount = 0;
 
   for (let index = 0; index < audience.length; index += chunkSize) {
     const chunk = audience.slice(index, index + chunkSize);
@@ -1353,23 +1404,36 @@ export async function sendEmailCampaignAction(formData: FormData) {
 
     const batchResults = (data.data ?? []) as Array<{ id?: string | null }>;
 
-    chunk.forEach((recipient, chunkIndex) => {
-      queuedRows.push({
-        campaign_id: campaign.id,
-        recipient_email: recipient.email,
-        recipient_name: recipient.name,
-        provider_message_id: batchResults[chunkIndex]?.id ?? null,
-        delivery_status: "queued",
-        error_text: null,
+    const deliveryRows = chunk.map((recipient, chunkIndex) => ({
+      campaign_id: campaign.id,
+      recipient_email: recipient.email,
+      recipient_name: recipient.name,
+      provider_message_id: batchResults[chunkIndex]?.id ?? null,
+      delivery_status: "queued",
+      error_text: null,
+    }));
+
+    const { error: deliveryInsertError } = await supabase.from("email_deliveries").insert(deliveryRows);
+
+    if (deliveryInsertError) {
+      await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", campaign.id);
+      await logAuditEvent(supabase, {
+        actorUserId: session.user.id,
+        entityType: "email_campaign",
+        entityId: campaign.id,
+        action: "delivery_tracking_failed",
+        metadata: {
+          error: deliveryInsertError.message,
+          acceptedRecipientCount: queuedCount + deliveryRows.length,
+        },
       });
-    });
+      redirectWithError("/admin/email/campaigns", deliveryInsertError.message);
+    }
+
+    queuedCount += deliveryRows.length;
   }
 
-  if (queuedRows.length) {
-    await supabase.from("email_deliveries").insert(queuedRows);
-  }
-
-  await supabase
+  const { error: campaignUpdateError } = await supabase
     .from("email_campaigns")
     .update({
       status: "sent",
@@ -1377,13 +1441,27 @@ export async function sendEmailCampaignAction(formData: FormData) {
     })
     .eq("id", campaign.id);
 
+  if (campaignUpdateError) {
+    await logAuditEvent(supabase, {
+      actorUserId: session.user.id,
+      entityType: "email_campaign",
+      entityId: campaign.id,
+      action: "sent_status_update_failed",
+      metadata: {
+        error: campaignUpdateError.message,
+        recipientCount: queuedCount,
+      },
+    });
+    redirectWithError("/admin/email/campaigns", campaignUpdateError.message);
+  }
+
   await logAuditEvent(supabase, {
     actorUserId: session.user.id,
     entityType: "email_campaign",
     entityId: campaign.id,
     action: "sent",
     metadata: {
-      recipientCount: queuedRows.length,
+      recipientCount: queuedCount,
       audienceScope,
     },
   });

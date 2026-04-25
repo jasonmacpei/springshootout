@@ -36,7 +36,7 @@ export default async function AdminEmailCampaignsPage({
       <Card className="bg-white/6 text-white shadow-none ring-1 ring-white/10">
         <CardTitle className="text-white">Campaigns</CardTitle>
         <CardDescription className="text-[#9fb2ce]">
-          Build and stage outbound campaigns locally. Sending and delivery tracking can layer on top of these draft records next.
+          Build drafts, send Resend broadcasts to local event contacts, and monitor delivery tracking.
         </CardDescription>
         {params?.error ? <p className="mt-4 text-sm text-red-300">{params.error}</p> : null}
       </Card>

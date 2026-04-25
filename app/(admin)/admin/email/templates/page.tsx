@@ -11,7 +11,7 @@ export default async function AdminEmailTemplatesPage() {
       <Card className="bg-white/6 text-white shadow-none ring-1 ring-white/10">
         <CardTitle className="text-white">Email templates</CardTitle>
         <CardDescription className="text-[#9fb2ce]">
-          Maintain welcome, registration follow-up, and broadcast templates locally before wiring send flows through Resend.
+          Maintain reusable welcome, registration follow-up, and broadcast copy for Resend campaigns.
         </CardDescription>
       </Card>
       <div className="space-y-4">

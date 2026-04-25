@@ -10,6 +10,7 @@
     "import:legacy": "node scripts/import-legacy/generate-import-sql.mjs",
     "verify:supabase-content": "node scripts/supabase/verify-content.mjs",
     "seed:email-templates": "node scripts/supabase/seed-email-templates.mjs",
+    "reassign:event-data": "node scripts/supabase/reassign-event-data.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
