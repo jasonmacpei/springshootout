@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { appConfig } from "@/lib/config";
@@ -42,9 +43,32 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </nav>
-          <Link href={appConfig.registrationUrl} rel="noreferrer" target="_blank">
-            <Button size="sm">Get In</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link className="hidden sm:block" href={appConfig.registrationUrl} rel="noreferrer" target="_blank">
+              <Button size="sm">Get In</Button>
+            </Link>
+            <details className="group relative lg:hidden">
+              <summary
+                aria-label="Open navigation menu"
+                className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full border border-[var(--border-strong)] bg-white/75 text-[var(--foreground)] shadow-sm transition hover:bg-white [&::-webkit-details-marker]:hidden"
+              >
+                <Menu aria-hidden="true" size={20} strokeWidth={2.4} />
+              </summary>
+              <nav className="absolute right-0 top-12 z-50 w-[min(20rem,calc(100vw-3rem))] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_18px_70px_rgba(20,33,61,0.18)]">
+                {navigation.map((item) => (
+                  <Link
+                    className="block border-b border-black/5 px-4 py-3 text-sm font-semibold text-[var(--foreground)] transition last:border-b-0 hover:bg-[var(--surface)]"
+                    href={item.href}
+                    key={item.href}
+                    rel={item.href.startsWith("http") ? "noreferrer" : undefined}
+                    target={item.href.startsWith("http") ? "_blank" : undefined}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </details>
+          </div>
         </div>
       </header>
       <main>{children}</main>
