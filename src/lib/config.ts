@@ -5,7 +5,7 @@ export const appConfig = {
   supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "hello@springshootout.ca",
   supportPhone: process.env.NEXT_PUBLIC_SUPPORT_PHONE ?? "902-626-1936",
   registrationUrl:
-    process.env.NEXT_PUBLIC_REGISTRATION_URL ?? "https://www.atlantichoops.com/spring-shootout-2/2026",
+    process.env.NEXT_PUBLIC_REGISTRATION_URL ?? "https://www.atlantichoops.com/spring-shootout-2026/2026",
   hoopsApiBase:
     process.env.HOOPS_SCOREBOOK_API_BASE?.replace(/\/$/, "") ?? "https://hoopsscorebook.com",
   defaultEventSlug: process.env.NEXT_PUBLIC_DEFAULT_EVENT_SLUG ?? "spring-shootout-2026",

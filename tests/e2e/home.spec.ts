@@ -6,7 +6,7 @@ test("home page renders poster-led headline", async ({ page }) => {
   await expect(page.getByAltText("Spring Shootout 2026 tournament poster")).toBeVisible();
   await expect(page.getByRole("link", { name: "Register your team" })).toHaveAttribute(
     "href",
-    "https://www.atlantichoops.com/spring-shootout-2/2026",
+    "https://www.atlantichoops.com/spring-shootout-2026/2026",
   );
 });
 
