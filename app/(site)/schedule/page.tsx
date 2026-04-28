@@ -30,6 +30,22 @@ function formatStatus(status: string) {
   return status.replaceAll("_", " ");
 }
 
+function formatMatchup(game: {
+  gameName?: string | null;
+  homeTeamName?: string | null;
+  homeSlotLabel?: string | null;
+  awayTeamName?: string | null;
+  awaySlotLabel?: string | null;
+}) {
+  if (game.gameName) {
+    return game.gameName;
+  }
+
+  const home = game.homeTeamName || game.homeSlotLabel || "Home TBD";
+  const away = game.awayTeamName || game.awaySlotLabel || "Away TBD";
+  return `${home} vs ${away}`;
+}
+
 export default async function SchedulePage({
   searchParams,
 }: {
@@ -121,10 +137,7 @@ export default async function SchedulePage({
                       <td className="whitespace-nowrap px-4 py-3 font-semibold">{formatScheduleDate(game.scheduledAt)}</td>
                       <td className="whitespace-nowrap px-4 py-3">{formatScheduleTime(game.scheduledAt)}</td>
                       <td className="whitespace-nowrap px-4 py-3">{game.divisionName ?? "TBD"}</td>
-                      <td className="px-4 py-3 font-semibold">
-                        {game.homeTeamName || game.homeSlotLabel || "Home TBD"} vs{" "}
-                        {game.awayTeamName || game.awaySlotLabel || "Away TBD"}
-                      </td>
+                      <td className="px-4 py-3 font-semibold">{formatMatchup(game)}</td>
                       <td className="px-4 py-3">{game.venue ?? "Venue pending"}</td>
                       <td className="px-4 py-3 text-[var(--muted-foreground)]">{game.poolName ?? game.stageName ?? "TBD"}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
@@ -140,10 +153,7 @@ export default async function SchedulePage({
               {filteredSchedule.map((game) => (
                 <div className="grid gap-2 p-4" key={game.gamePublicId}>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="font-semibold">
-                      {game.homeTeamName || game.homeSlotLabel || "Home TBD"} vs{" "}
-                      {game.awayTeamName || game.awaySlotLabel || "Away TBD"}
-                    </div>
+                    <div className="font-semibold">{formatMatchup(game)}</div>
                     <div className="shrink-0 text-right text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
                       {formatStatus(game.status)}
                     </div>

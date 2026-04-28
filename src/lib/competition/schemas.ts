@@ -15,6 +15,7 @@ export const eventSchema = z.object({
 export const scoreboardGameSchema = z.object({
   gameId: z.number(),
   gamePublicId: z.string(),
+  gameName: z.string().nullable().optional(),
   status: z.string(),
   scheduledAt: z.string(),
   venue: z.string().nullable().optional(),
