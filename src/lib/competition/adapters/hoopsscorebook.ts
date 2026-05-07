@@ -1,7 +1,6 @@
 import { revalidateTag } from "next/cache";
 
 import { appConfig } from "@/lib/config";
-import { mockCompetitionProvider } from "@/lib/competition/adapters/mock";
 import {
   eventSchema,
   gameDetailSchema,
@@ -192,7 +191,7 @@ export const hoopsscorebookProvider: CompetitionProvider = {
 
       return eventSchema.array().parse(data.events ?? []);
     } catch {
-      return mockCompetitionProvider.listEvents();
+      return [];
     }
   },
 
@@ -210,7 +209,7 @@ export const hoopsscorebookProvider: CompetitionProvider = {
 
       return scoreboardGameSchema.array().parse(data.games ?? []);
     } catch {
-      return mockCompetitionProvider.getSchedule(filter);
+      return [];
     }
   },
 
@@ -231,7 +230,7 @@ export const hoopsscorebookProvider: CompetitionProvider = {
 
       return scoreboardGameSchema.array().parse(data.games ?? []);
     } catch {
-      return mockCompetitionProvider.getScoreboard(filter);
+      return [];
     }
   },
 
@@ -255,7 +254,7 @@ export const hoopsscorebookProvider: CompetitionProvider = {
 
       return resultSchema.array().parse(data.results ?? []);
     } catch {
-      return mockCompetitionProvider.getResults(filter);
+      return [];
     }
   },
 
@@ -276,7 +275,7 @@ export const hoopsscorebookProvider: CompetitionProvider = {
 
       return standingSchema.array().parse(data.standings ?? []);
     } catch {
-      return mockCompetitionProvider.getStandings(filter);
+      return [];
     }
   },
 
@@ -296,7 +295,7 @@ export const hoopsscorebookProvider: CompetitionProvider = {
 
       return poolSchema.array().parse(data.pools ?? []);
     } catch {
-      return mockCompetitionProvider.getPools(filter);
+      return [];
     }
   },
 
@@ -316,7 +315,7 @@ export const hoopsscorebookProvider: CompetitionProvider = {
 
       return playoffBracketSchema.array().parse(data.brackets ?? []);
     } catch {
-      return mockCompetitionProvider.getPlayoffBrackets(filter);
+      return [];
     }
   },
 

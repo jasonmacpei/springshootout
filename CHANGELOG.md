@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.2] - 2026-05-07
+
+- Removed mock competition fallback from the live Hoops Scorebook adapter so sample Halifax/Charlottetown data cannot appear on production standings.
+
 ## [0.2.1] - 2026-05-07
 
 - Fixed public standings so every division, pool, and scheduled team remains visible after the first approved result is returned.
