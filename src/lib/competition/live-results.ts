@@ -63,11 +63,11 @@ function groupFinalResults(results: CompetitionResult[]) {
 export async function getLiveResultsFeed(): Promise<LiveResultsFeed> {
   const provider = getCompetitionProvider();
   const eventSlug = await getCompetitionEventSlugByLocalSlug();
-  const [liveGames, results] = await Promise.all([
+  const [scoreboardGames, results] = await Promise.all([
     provider.getScoreboard({
       event: eventSlug,
-      status: "live",
-      limit: 50,
+      status: "all",
+      limit: 100,
     }),
     provider.getResults({
       event: eventSlug,
@@ -79,7 +79,7 @@ export async function getLiveResultsFeed(): Promise<LiveResultsFeed> {
   return {
     eventSlug,
     generatedAt: new Date().toISOString(),
-    liveGames,
+    liveGames: scoreboardGames.filter((game) => game.status === "in_progress" || game.status === "live"),
     finalGames: groupFinalResults(results),
   };
 }

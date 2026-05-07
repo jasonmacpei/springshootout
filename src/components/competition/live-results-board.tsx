@@ -145,9 +145,9 @@ export function LiveResultsBoard({ initialFeed }: { initialFeed: LiveResultsFeed
                           {clock ?? formatStatus(game.status)}
                         </div>
                       </div>
-                      <Link href={`/results/${game.gamePublicId}`}>
+                      <Link href={`/games/${game.gamePublicId}`}>
                         <Button size="sm" variant="outline">
-                          Game detail
+                          Box score
                         </Button>
                       </Link>
                     </div>
@@ -193,9 +193,9 @@ export function LiveResultsBoard({ initialFeed }: { initialFeed: LiveResultsFeed
                       {result.venue ?? "Venue pending"} · {formatDateTime(result.scheduledAt)}
                     </CardDescription>
                   </div>
-                  <Link href={`/results/${result.gamePublicId}`}>
+                  <Link href={`/games/${result.gamePublicId}`}>
                     <Button size="sm" variant="outline">
-                      Game detail
+                      Box score
                     </Button>
                   </Link>
                 </div>

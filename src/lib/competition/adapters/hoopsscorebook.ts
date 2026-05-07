@@ -13,16 +13,27 @@ import {
 } from "@/lib/competition/schemas";
 import type { CompetitionProvider, ResultsFilter, ScoreboardFilter, StandingsFilter } from "@/lib/competition/service";
 
+class CompetitionRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
 async function fetchCompetitionEnvelope({
   endpoint,
   searchParams,
   tag,
   revalidate,
+  cache,
 }: {
   endpoint: string;
   searchParams?: Record<string, string | number | undefined>;
-  tag: string;
-  revalidate: number;
+  tag?: string;
+  revalidate?: number;
+  cache?: RequestCache;
 }) {
   const url = new URL(`/api/v1/${endpoint}`, appConfig.hoopsApiBase);
 
@@ -41,15 +52,18 @@ async function fetchCompetitionEnvelope({
   }
 
   const response = await fetch(url, {
+    cache,
     headers,
-    next: {
-      revalidate,
-      tags: [tag],
-    },
+    next: tag && revalidate !== undefined
+      ? {
+          revalidate,
+          tags: [tag],
+        }
+      : undefined,
   });
 
   if (!response.ok) {
-    throw new Error(`Competition request failed for ${endpoint}: ${response.status}`);
+    throw new CompetitionRequestError(`Competition request failed for ${endpoint}: ${response.status}`, response.status);
   }
 
   const payload = await response.json();
@@ -221,16 +235,23 @@ export const hoopsscorebookProvider: CompetitionProvider = {
   },
 
   async getGame(publicId: string) {
+    return this.getGameBoxScore(publicId);
+  },
+
+  async getGameBoxScore(publicId: string) {
     try {
       const data = await fetchCompetitionEnvelope({
-        endpoint: `games/${publicId}`,
-        tag: `competition:game:${publicId}`,
-        revalidate: 15,
+        endpoint: `games/${publicId}/box-score`,
+        cache: "no-store",
       });
 
       return gameDetailSchema.parse(data);
-    } catch {
-      return mockCompetitionProvider.getGame(publicId);
+    } catch (error) {
+      if (error instanceof CompetitionRequestError && error.status === 404) {
+        return null;
+      }
+
+      throw error;
     }
   },
 

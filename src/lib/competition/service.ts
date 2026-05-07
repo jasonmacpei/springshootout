@@ -44,6 +44,7 @@ export interface CompetitionProvider {
   getPlayoffBrackets(filter: ResultsFilter): Promise<CompetitionPlayoffBracket[]>;
   getTeamsForEvent(event: string): Promise<CompetitionEventTeam[]>;
   getGame(publicId: string): Promise<CompetitionGameDetail | null>;
+  getGameBoxScore(publicId: string): Promise<CompetitionGameDetail | null>;
   submitScore(input: {
     event: string;
     gamePublicId: string;

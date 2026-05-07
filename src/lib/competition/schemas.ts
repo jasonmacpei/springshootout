@@ -38,7 +38,10 @@ export const scoreboardGameSchema = z.object({
   awayScore: z.number().nullable().optional(),
   periodNumber: z.number().nullable().optional(),
   clockSecondsRemaining: z.number().nullable().optional(),
+  clockDecisecondsRemaining: z.number().nullable().optional(),
   isClockRunning: z.boolean().nullable().optional(),
+  usesGameClock: z.boolean().nullable().optional(),
+  clockSyncedAt: z.string().nullable().optional(),
 });
 
 export const resultSchema = z.object({
@@ -82,21 +85,54 @@ export const standingSchema = z.object({
 });
 
 export const gameDetailSchema = z.object({
+  generatedAt: z.string().optional(),
   game: z.object({
     gameId: z.number(),
     gamePublicId: z.string(),
     status: z.string(),
     scheduledAt: z.string(),
     venue: z.string().nullable().optional(),
+    court: z.string().nullable().optional(),
     eventSlug: z.string(),
     eventName: z.string(),
+    divisionId: z.number().nullable().optional(),
+    divisionName: z.string().nullable().optional(),
+    poolId: z.number().nullable().optional(),
+    poolName: z.string().nullable().optional(),
+    stageId: z.number().nullable().optional(),
+    stageName: z.string().nullable().optional(),
     homeTeamName: z.string(),
     homeScore: z.number().nullable().optional(),
     awayTeamName: z.string(),
     awayScore: z.number().nullable().optional(),
     periodNumber: z.number().nullable().optional(),
     clockSecondsRemaining: z.number().nullable().optional(),
+    clockDecisecondsRemaining: z.number().nullable().optional(),
+    isClockRunning: z.boolean().nullable().optional(),
+    usesGameClock: z.boolean().nullable().optional(),
+    clockSyncedAt: z.string().nullable().optional(),
   }),
+  playerLinesByTeam: z
+    .array(
+      z.object({
+        teamId: z.number().nullable().optional(),
+        teamName: z.string(),
+        players: z
+          .array(
+            z.object({
+              playerId: z.number().nullable().optional(),
+              playerName: z.string(),
+              jerseyNumber: z.number().nullable().optional(),
+              points: z.number().nullable().optional(),
+              fouls: z.number().nullable().optional(),
+              secondsPlayed: z.number().nullable().optional(),
+              plusMinus: z.number().nullable().optional(),
+            }),
+          )
+          .default([]),
+      }),
+    )
+    .default([]),
   recentEvents: z
     .array(
       z.object({
@@ -104,6 +140,7 @@ export const gameDetailSchema = z.object({
         eventType: z.string(),
         periodNumber: z.number().nullable().optional(),
         clockSecondsRemaining: z.number().nullable().optional(),
+        points: z.number().nullable().optional(),
         teamName: z.string().nullable().optional(),
         playerFirstName: z.string().nullable().optional(),
         playerLastName: z.string().nullable().optional(),
@@ -227,7 +264,9 @@ export type CompetitionPlayoffBracket = {
   eventName: string;
   divisionId?: number | null;
   divisionName?: string | null;
-  bracketDefinition: Array<z.infer<typeof playoffBracketSchema>["bracketDefinition"][number]>;
+  bracketDefinition: Array<
+    z.infer<typeof playoffBracketSchema>["bracketDefinition"][number]
+  >;
   games: Array<z.infer<typeof playoffGameSchema>>;
 };
 
@@ -246,4 +285,6 @@ export type CompetitionGameDetail = z.infer<typeof gameDetailSchema>;
 export type CompetitionPoolTeam = z.infer<typeof poolTeamSchema>;
 export type CompetitionPoolRecord = z.infer<typeof poolSchema>;
 export type CompetitionPlayoffGame = z.infer<typeof playoffGameSchema>;
-export type CompetitionPlayoffBracketRecord = z.infer<typeof playoffBracketSchema>;
+export type CompetitionPlayoffBracketRecord = z.infer<
+  typeof playoffBracketSchema
+>;

@@ -137,7 +137,11 @@ export default async function SchedulePage({
                       <td className="whitespace-nowrap px-4 py-3 font-semibold">{formatScheduleDate(game.scheduledAt)}</td>
                       <td className="whitespace-nowrap px-4 py-3">{formatScheduleTime(game.scheduledAt)}</td>
                       <td className="whitespace-nowrap px-4 py-3">{game.divisionName ?? "TBD"}</td>
-                      <td className="px-4 py-3 font-semibold">{formatMatchup(game)}</td>
+                      <td className="px-4 py-3 font-semibold">
+                        <Link className="underline-offset-4 hover:underline" href={`/games/${game.gamePublicId}`}>
+                          {formatMatchup(game)}
+                        </Link>
+                      </td>
                       <td className="px-4 py-3">{game.venue ?? "Venue pending"}</td>
                       <td className="px-4 py-3 text-[var(--muted-foreground)]">{game.poolName ?? game.stageName ?? "TBD"}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
@@ -153,7 +157,9 @@ export default async function SchedulePage({
               {filteredSchedule.map((game) => (
                 <div className="grid gap-2 p-4" key={game.gamePublicId}>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="font-semibold">{formatMatchup(game)}</div>
+                    <Link className="font-semibold underline-offset-4 hover:underline" href={`/games/${game.gamePublicId}`}>
+                      {formatMatchup(game)}
+                    </Link>
                     <div className="shrink-0 text-right text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
                       {formatStatus(game.status)}
                     </div>

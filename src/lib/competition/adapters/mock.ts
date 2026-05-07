@@ -33,7 +33,10 @@ export const mockCompetitionProvider: CompetitionProvider = {
         awayScore: 47,
         periodNumber: 3,
         clockSecondsRemaining: 142,
+        clockDecisecondsRemaining: 1420,
         isClockRunning: true,
+        usesGameClock: true,
+        clockSyncedAt: "2026-04-18T18:44:00.000Z",
       },
       {
         gameId: 19,
@@ -49,7 +52,10 @@ export const mockCompetitionProvider: CompetitionProvider = {
         awayScore: 64,
         periodNumber: 4,
         clockSecondsRemaining: 0,
+        clockDecisecondsRemaining: 0,
         isClockRunning: false,
+        usesGameClock: true,
+        clockSyncedAt: "2026-04-18T19:18:00.000Z",
       },
     ];
   },
@@ -186,7 +192,9 @@ export const mockCompetitionProvider: CompetitionProvider = {
         stageScope: "division",
         stageOrder: 1,
         stageStatus: "active",
-        bracketDefinition: [{ order: 1, name: "Semi 1", homeSource: "1A", awaySource: "2B" }],
+        bracketDefinition: [
+          { order: 1, name: "Semi 1", homeSource: "1A", awaySource: "2B" },
+        ],
         games: [
           {
             gameId: 19,
@@ -226,9 +234,12 @@ export const mockCompetitionProvider: CompetitionProvider = {
       status: "all",
       limit: 10,
     });
-    const selected = scoreboard.find((game) => game.gamePublicId === publicId) ?? scoreboard[0];
+    const selected =
+      scoreboard.find((game) => game.gamePublicId === publicId) ??
+      scoreboard[0];
 
     return {
+      generatedAt: "2026-04-18T18:44:10.000Z",
       game: {
         gameId: selected.gameId,
         gamePublicId: selected.gamePublicId,
@@ -237,19 +248,82 @@ export const mockCompetitionProvider: CompetitionProvider = {
         venue: selected.venue,
         eventSlug: selected.eventSlug,
         eventName: selected.eventName,
+        divisionId: selected.divisionId ?? null,
+        divisionName: selected.divisionName ?? "U15 Boys",
+        poolId: selected.poolId ?? null,
+        poolName: selected.poolName ?? "Pool A",
+        stageId: selected.stageId ?? null,
+        stageName: selected.stageName ?? "Pool Play",
         homeTeamName: selected.homeTeamName,
         homeScore: selected.homeScore,
         awayTeamName: selected.awayTeamName,
         awayScore: selected.awayScore,
         periodNumber: selected.periodNumber,
         clockSecondsRemaining: selected.clockSecondsRemaining,
+        clockDecisecondsRemaining: selected.clockDecisecondsRemaining,
+        isClockRunning: selected.isClockRunning,
+        usesGameClock: true,
+        clockSyncedAt: "2026-04-18T18:44:00.000Z",
       },
+      playerLinesByTeam: [
+        {
+          teamId: 1,
+          teamName: selected.homeTeamName,
+          players: [
+            {
+              playerId: 101,
+              playerName: "Jordan Lee",
+              jerseyNumber: 12,
+              points: 18,
+              fouls: 2,
+              secondsPlayed: 1260,
+              plusMinus: 7,
+            },
+            {
+              playerId: 102,
+              playerName: "Morgan Smith",
+              jerseyNumber: 4,
+              points: 11,
+              fouls: 1,
+              secondsPlayed: 980,
+              plusMinus: 3,
+            },
+          ],
+        },
+        {
+          teamId: 2,
+          teamName: selected.awayTeamName,
+          players: [
+            {
+              playerId: 201,
+              playerName: "Sam Carter",
+              jerseyNumber: 21,
+              points: 16,
+              fouls: 3,
+              secondsPlayed: 1180,
+              plusMinus: -4,
+            },
+          ],
+        },
+      ],
       recentEvents: [
+        {
+          eventSequence: 11,
+          eventType: "score_3",
+          periodNumber: 3,
+          clockSecondsRemaining: 155,
+          points: 3,
+          teamName: selected.awayTeamName,
+          playerFirstName: "Sam",
+          playerLastName: "Carter",
+          recordedAt: "2026-04-18T18:43:12.000Z",
+        },
         {
           eventSequence: 12,
           eventType: "score_2",
           periodNumber: 3,
           clockSecondsRemaining: 142,
+          points: 2,
           teamName: selected.homeTeamName,
           playerFirstName: "Jordan",
           playerLastName: "Lee",
@@ -257,6 +331,10 @@ export const mockCompetitionProvider: CompetitionProvider = {
         },
       ],
     };
+  },
+
+  async getGameBoxScore(publicId) {
+    return this.getGame(publicId);
   },
 
   async refreshEvent(identifier) {
