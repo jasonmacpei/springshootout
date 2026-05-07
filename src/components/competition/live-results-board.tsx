@@ -8,19 +8,63 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import type { LiveResultsFeed } from "@/lib/competition/live-results";
+import type { CompetitionScoreboardGame } from "@/lib/competition/schemas";
 import { formatDateTime } from "@/lib/utils";
 
-const pollIntervalMs = 15_000;
+const pollIntervalMs = 7_000;
+const tickIntervalMs = 200;
 
-function formatClock(seconds: number | null | undefined) {
-  if (seconds === null || seconds === undefined) {
+function isFinalStatus(status: string | undefined) {
+  return status === "final" || status === "finalized" || status === "complete";
+}
+
+function parseClockSyncedAt(value: string) {
+  const parsed = new Date(value).getTime();
+  if (Number.isFinite(parsed)) {
+    return parsed;
+  }
+
+  return new Date(value.replace(" ", "T")).getTime();
+}
+
+function getDisplayDeciseconds(game: CompetitionScoreboardGame, nowMs: number) {
+  if (!game.usesGameClock) {
     return null;
   }
 
-  const bounded = Math.max(0, Math.floor(seconds));
-  const minutes = Math.floor(bounded / 60);
-  const remainder = String(bounded % 60).padStart(2, "0");
-  return `${minutes}:${remainder}`;
+  const base =
+    typeof game.clockDecisecondsRemaining === "number"
+      ? game.clockDecisecondsRemaining
+      : typeof game.clockSecondsRemaining === "number"
+        ? game.clockSecondsRemaining * 10
+        : null;
+
+  if (base === null) {
+    return null;
+  }
+
+  if (isFinalStatus(game.status) || !game.isClockRunning || !game.clockSyncedAt) {
+    return Math.max(0, base);
+  }
+
+  const syncedAtMs = parseClockSyncedAt(game.clockSyncedAt);
+  if (!Number.isFinite(syncedAtMs)) {
+    return Math.max(0, base);
+  }
+
+  const elapsedDeciseconds = Math.floor((nowMs - syncedAtMs) / 100);
+  return Math.max(0, base - elapsedDeciseconds);
+}
+
+function formatClockFromDeciseconds(deciseconds: number | null) {
+  if (deciseconds === null) {
+    return null;
+  }
+
+  const totalSeconds = Math.ceil(deciseconds / 10);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function formatStatus(status: string) {
@@ -38,11 +82,34 @@ function formatUpdatedAt(value: string) {
 export function LiveResultsBoard({ initialFeed }: { initialFeed: LiveResultsFeed }) {
   const [feed, setFeed] = useState(initialFeed);
   const [error, setError] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  const hasRunningClock = feed.liveGames.some(
+    (game) => game.usesGameClock && game.isClockRunning && !isFinalStatus(game.status),
+  );
+
+  useEffect(() => {
+    if (!hasRunningClock) {
+      setNowMs(Date.now());
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, tickIntervalMs);
+
+    return () => window.clearInterval(interval);
+  }, [hasRunningClock]);
 
   useEffect(() => {
     let ignore = false;
+    let intervalId: number | null = null;
 
     async function poll() {
+      if (document.hidden) {
+        return;
+      }
+
       try {
         const response = await fetch("/api/competition/live-results", {
           cache: "no-store",
@@ -55,6 +122,7 @@ export function LiveResultsBoard({ initialFeed }: { initialFeed: LiveResultsFeed
         const nextFeed = (await response.json()) as LiveResultsFeed;
         if (!ignore) {
           setFeed(nextFeed);
+          setNowMs(Date.now());
           setError(null);
         }
       } catch (pollError) {
@@ -64,10 +132,31 @@ export function LiveResultsBoard({ initialFeed }: { initialFeed: LiveResultsFeed
       }
     }
 
-    const interval = window.setInterval(poll, pollIntervalMs);
+    function configurePolling() {
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+
+      intervalId = document.hidden ? null : window.setInterval(poll, pollIntervalMs);
+    }
+
+    function handleVisibilityChange() {
+      if (!document.hidden) {
+        void poll();
+      }
+
+      configurePolling();
+    }
+
+    configurePolling();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       ignore = true;
-      window.clearInterval(interval);
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -105,7 +194,7 @@ export function LiveResultsBoard({ initialFeed }: { initialFeed: LiveResultsFeed
         {feed.liveGames.length > 0 ? (
           <div className="grid gap-4">
             {feed.liveGames.map((game) => {
-              const clock = formatClock(game.clockSecondsRemaining);
+              const clock = formatClockFromDeciseconds(getDisplayDeciseconds(game, nowMs));
 
               return (
                 <Card className="border-emerald-200 bg-white p-5" key={game.gamePublicId}>

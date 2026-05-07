@@ -68,6 +68,7 @@ export async function getLiveResultsFeed(): Promise<LiveResultsFeed> {
       event: eventSlug,
       status: "all",
       limit: 100,
+      noStore: true,
     }),
     provider.getResults({
       event: eventSlug,

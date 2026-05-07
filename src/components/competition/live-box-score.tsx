@@ -72,7 +72,10 @@ function getDisplayDeciseconds(game: GameSnapshot | null) {
     return Math.max(0, base);
   }
 
-  const syncedAtMs = new Date(game.clockSyncedAt).getTime();
+  const parsedSyncedAtMs = new Date(game.clockSyncedAt).getTime();
+  const syncedAtMs = Number.isFinite(parsedSyncedAtMs)
+    ? parsedSyncedAtMs
+    : new Date(game.clockSyncedAt.replace(" ", "T")).getTime();
   if (!Number.isFinite(syncedAtMs)) {
     return Math.max(0, base);
   }

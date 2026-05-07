@@ -13,6 +13,7 @@ export type ScoreboardFilter = {
   event: string;
   status?: "live" | "final" | "all";
   limit?: number;
+  noStore?: boolean;
 };
 
 export type ResultsFilter = {

@@ -146,6 +146,7 @@ export const hoopsscorebookProvider: CompetitionProvider = {
 
   async getScoreboard(filter: ScoreboardFilter) {
     try {
+      const noStore = filter.noStore === true;
       const data = await fetchCompetitionEnvelope({
         endpoint: "scoreboard",
         searchParams: {
@@ -153,8 +154,9 @@ export const hoopsscorebookProvider: CompetitionProvider = {
           status: filter.status ?? "all",
           limit: filter.limit ?? 20,
         },
-        tag: `competition:${filter.event}:scoreboard`,
-        revalidate: 15,
+        tag: noStore ? undefined : `competition:${filter.event}:scoreboard`,
+        revalidate: noStore ? undefined : 15,
+        cache: noStore ? "no-store" : undefined,
       });
 
       return scoreboardGameSchema.array().parse(data.games ?? []);
@@ -287,6 +289,7 @@ export const hoopsscorebookProvider: CompetitionProvider = {
           event: appConfig.defaultEventSlug,
           status: "all",
           limit: 100,
+          noStore: true,
         });
         const game = games.find((scoreboardGame) => scoreboardGame.gamePublicId === publicId);
 
