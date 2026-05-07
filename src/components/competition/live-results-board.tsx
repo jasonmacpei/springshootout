@@ -266,27 +266,47 @@ export function LiveResultsBoard({ initialFeed }: { initialFeed: LiveResultsFeed
         {feed.finalGames.length > 0 ? (
           <div className="grid gap-4">
             {feed.finalGames.map((result) => (
-              <Card key={result.gamePublicId}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge>{formatStatus(result.resultWorkflowStatus)}</Badge>
+              <Card className="bg-white p-5" key={result.gamePublicId}>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <Badge>Final</Badge>
                       <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
                         {result.divisionName ?? "Division pending"} · {result.poolName ?? result.stageName ?? "Stage pending"}
                       </span>
                     </div>
-                    <CardTitle>
-                      {result.teamName} {result.score} - {result.opponentScore} {result.opponentTeamName}
-                    </CardTitle>
+                    <div className="grid gap-2">
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-lg font-bold text-[var(--foreground)]">{result.teamName}</span>
+                        <span className="text-3xl font-black tabular-nums text-[var(--foreground)]">
+                          {result.score}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-lg font-bold text-[var(--foreground)]">{result.opponentTeamName}</span>
+                        <span className="text-3xl font-black tabular-nums text-[var(--foreground)]">
+                          {result.opponentScore}
+                        </span>
+                      </div>
+                    </div>
                     <CardDescription>
                       {result.venue ?? "Venue pending"} · {formatDateTime(result.scheduledAt)}
                     </CardDescription>
                   </div>
-                  <Link href={`/games/${result.gamePublicId}`}>
-                    <Button size="sm" variant="outline">
-                      Box score
-                    </Button>
-                  </Link>
+                  <div className="flex shrink-0 flex-col items-end gap-3">
+                    <div className="rounded-lg border border-black/10 bg-[var(--surface)] px-3 py-2 text-right">
+                      <div className="flex items-center justify-end gap-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
+                        <Trophy aria-hidden="true" className="h-3.5 w-3.5" />
+                        Status
+                      </div>
+                      <div className="mt-1 text-xl font-black tabular-nums text-[var(--foreground)]">Final</div>
+                    </div>
+                    <Link href={`/games/${result.gamePublicId}`}>
+                      <Button size="sm" variant="outline">
+                        Box score
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </Card>
             ))}
