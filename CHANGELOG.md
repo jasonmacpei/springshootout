@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.1] - 2026-05-07
+
+- Fixed public standings so every division, pool, and scheduled team remains visible after the first approved result is returned.
+- Added standings merge coverage for zero-record teams and schedule-only pools.
+- Cleaned up box score error handling so repository lint checks stay green.
+
 ## [0.2.0] - 2026-05-07
 
 - Added live game box score pages backed by the Hoops Scorebook public box score API.

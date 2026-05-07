@@ -3,170 +3,29 @@ import { PageHero } from "@/components/marketing/page-hero";
 import { EmptyState } from "@/components/states/empty-state";
 import { Card } from "@/components/ui/card";
 import { getCompetitionProvider } from "@/lib/competition";
+import { formatWinPct, groupStandings, mergeStandings } from "@/lib/competition/standings";
 import { getCompetitionEventSlugByLocalSlug } from "@/lib/db/queries/content";
-import type { CompetitionScoreboardGame, CompetitionStanding } from "@/lib/competition/schemas";
-
-type StandingRow = Pick<
-  CompetitionStanding,
-  | "eventSlug"
-  | "eventName"
-  | "divisionId"
-  | "divisionName"
-  | "poolId"
-  | "poolName"
-  | "stageName"
-  | "teamPublicId"
-  | "teamName"
-  | "rank"
-  | "wins"
-  | "losses"
-  | "ties"
-  | "gamesPlayed"
-  | "pointsFor"
-  | "pointsAgainst"
-  | "pointDifferential"
->;
-
-function buildScheduleStandings(schedule: CompetitionScoreboardGame[]): StandingRow[] {
-  const rows = new Map<string, StandingRow & { firstSeen: number }>();
-
-  schedule.forEach((game, index) => {
-    if (!game.divisionId || !game.poolId || !game.divisionName || !game.poolName) {
-      return;
-    }
-
-    [
-      { id: game.homeTeamPublicId, name: game.homeTeamName },
-      { id: game.awayTeamPublicId, name: game.awayTeamName },
-    ].forEach((team) => {
-      if (!team.id || !team.name) {
-        return;
-      }
-
-      const key = `${game.divisionId}:${game.poolId}:${team.id}`;
-
-      if (!rows.has(key)) {
-        rows.set(key, {
-          eventSlug: game.eventSlug,
-          eventName: game.eventName,
-          divisionId: game.divisionId,
-          divisionName: game.divisionName,
-          poolId: game.poolId,
-          poolName: game.poolName,
-          stageName: game.stageName,
-          teamPublicId: team.id,
-          teamName: team.name,
-          rank: 0,
-          wins: 0,
-          losses: 0,
-          ties: 0,
-          gamesPlayed: 0,
-          pointsFor: 0,
-          pointsAgainst: 0,
-          pointDifferential: 0,
-          firstSeen: index,
-        });
-      }
-    });
-  });
-
-  const groupedRows = Array.from(rows.values()).reduce<Record<string, Array<StandingRow & { firstSeen: number }>>>(
-    (acc, row) => {
-      const key = `${row.divisionId}:${row.poolId}`;
-      acc[key] ??= [];
-      acc[key].push(row);
-      return acc;
-    },
-    {},
-  );
-
-  return Object.values(groupedRows).flatMap((poolRows) =>
-    poolRows
-      .sort((a, b) => a.firstSeen - b.firstSeen || a.teamName.localeCompare(b.teamName))
-      .map((row, index) => ({
-        eventSlug: row.eventSlug,
-        eventName: row.eventName,
-        divisionId: row.divisionId,
-        divisionName: row.divisionName,
-        poolId: row.poolId,
-        poolName: row.poolName,
-        stageName: row.stageName,
-        teamPublicId: row.teamPublicId,
-        teamName: row.teamName,
-        rank: index + 1,
-        wins: row.wins,
-        losses: row.losses,
-        ties: row.ties,
-        gamesPlayed: row.gamesPlayed,
-        pointsFor: row.pointsFor,
-        pointsAgainst: row.pointsAgainst,
-        pointDifferential: row.pointDifferential,
-      })),
-  );
-}
-
-function groupStandings(standings: StandingRow[]) {
-  return Object.values(
-    standings.reduce<Record<string, StandingRow[]>>((acc, item) => {
-      const key = `${item.divisionId ?? item.divisionName ?? "Division"}-${item.poolId ?? item.poolName ?? "Pool"}`;
-      acc[key] ??= [];
-      acc[key].push(item);
-      return acc;
-    }, {}),
-  )
-    .map((pool) => [...pool].sort((a, b) => a.rank - b.rank || a.teamName.localeCompare(b.teamName)))
-    .sort((a, b) => {
-      const divisionOrder =
-        (a[0]?.divisionId ?? Number.MAX_SAFE_INTEGER) - (b[0]?.divisionId ?? Number.MAX_SAFE_INTEGER);
-
-      if (divisionOrder !== 0) {
-        return divisionOrder;
-      }
-
-      const divisionNameOrder = (a[0]?.divisionName ?? "").localeCompare(b[0]?.divisionName ?? "");
-
-      if (divisionNameOrder !== 0) {
-        return divisionNameOrder;
-      }
-
-      const poolOrder = (a[0]?.poolId ?? Number.MAX_SAFE_INTEGER) - (b[0]?.poolId ?? Number.MAX_SAFE_INTEGER);
-
-      if (poolOrder !== 0) {
-        return poolOrder;
-      }
-
-      return (a[0]?.poolName ?? "").localeCompare(b[0]?.poolName ?? "");
-    });
-}
-
-function formatWinPct(row: StandingRow) {
-  if (row.gamesPlayed === 0) {
-    return "0.000";
-  }
-
-  return ((row.wins + row.ties * 0.5) / row.gamesPlayed).toFixed(3);
-}
 
 export default async function StandingsPage() {
   const provider = getCompetitionProvider();
   const competitionEventSlug = await getCompetitionEventSlugByLocalSlug();
-  const standings = await provider.getStandings({
-    event: competitionEventSlug,
-    limit: 500,
-  });
+  const [standings, pools, schedule] = await Promise.all([
+    provider.getStandings({
+      event: competitionEventSlug,
+      limit: 500,
+    }),
+    provider.getPools({
+      event: competitionEventSlug,
+      limit: 500,
+    }),
+    provider.getSchedule({
+      event: competitionEventSlug,
+      status: "all",
+      limit: 500,
+    }),
+  ]);
 
-  const scheduleStandings =
-    standings.length === 0
-      ? buildScheduleStandings(
-          await provider.getSchedule({
-            event: competitionEventSlug,
-            status: "all",
-            limit: 500,
-          }),
-        )
-      : [];
-
-  const grouped = groupStandings(standings.length > 0 ? standings : scheduleStandings);
+  const grouped = groupStandings(mergeStandings({ pools, schedule, standings }));
 
   return (
     <>
