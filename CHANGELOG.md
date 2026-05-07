@@ -6,6 +6,7 @@
 - Added local live-clock ticking between API polls, including paused-clock and final-game handling.
 - Added player stat tables grouped by team with points, fouls, minutes, and plus/minus when available.
 - Linked schedule and live results games to the new public box score view.
+- Added a live scoreboard fallback for game pages while the Hoops Scorebook box score endpoint is still deploying.
 
 ## [0.1.1] - 2026-05-07
 

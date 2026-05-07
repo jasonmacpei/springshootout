@@ -10,6 +10,7 @@ import {
   resultSchema,
   scoreboardGameSchema,
   standingSchema,
+  type CompetitionScoreboardGame,
 } from "@/lib/competition/schemas";
 import type { CompetitionProvider, ResultsFilter, ScoreboardFilter, StandingsFilter } from "@/lib/competition/service";
 
@@ -74,6 +75,40 @@ async function fetchCompetitionEnvelope({
   }
 
   return data;
+}
+
+function getScoreboardGameBoxScore(game: CompetitionScoreboardGame) {
+  return gameDetailSchema.parse({
+    generatedAt: new Date().toISOString(),
+    game: {
+      gameId: game.gameId,
+      gamePublicId: game.gamePublicId,
+      status: game.status,
+      scheduledAt: game.scheduledAt,
+      venue: game.venue,
+      court: game.court,
+      eventSlug: game.eventSlug,
+      eventName: game.eventName,
+      divisionId: game.divisionId,
+      divisionName: game.divisionName,
+      poolId: game.poolId,
+      poolName: game.poolName,
+      stageId: game.stageId,
+      stageName: game.stageName,
+      homeTeamName: game.homeTeamName,
+      homeScore: game.homeScore,
+      awayTeamName: game.awayTeamName,
+      awayScore: game.awayScore,
+      periodNumber: game.periodNumber,
+      clockSecondsRemaining: game.clockSecondsRemaining,
+      clockDecisecondsRemaining: game.clockDecisecondsRemaining,
+      isClockRunning: game.isClockRunning,
+      usesGameClock: game.usesGameClock,
+      clockSyncedAt: game.clockSyncedAt,
+    },
+    playerLinesByTeam: [],
+    recentEvents: [],
+  });
 }
 
 export const hoopsscorebookProvider: CompetitionProvider = {
@@ -248,7 +283,14 @@ export const hoopsscorebookProvider: CompetitionProvider = {
       return gameDetailSchema.parse(data);
     } catch (error) {
       if (error instanceof CompetitionRequestError && error.status === 404) {
-        return null;
+        const games = await this.getScoreboard({
+          event: appConfig.defaultEventSlug,
+          status: "all",
+          limit: 100,
+        });
+        const game = games.find((scoreboardGame) => scoreboardGame.gamePublicId === publicId);
+
+        return game ? getScoreboardGameBoxScore(game) : null;
       }
 
       throw error;
