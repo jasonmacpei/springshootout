@@ -14,9 +14,9 @@ export default async function ResultsPage() {
         description="Games being scored in Hoops Scorebook appear here while they are live, then remain below as finalized results."
       />
       <section className="mx-auto max-w-6xl px-6 pb-20 lg:px-10">
-        <CompetitionPoweredNote />
-        <div className="mt-6">
-          <LiveResultsBoard initialFeed={feed} />
+        <LiveResultsBoard initialFeed={feed} />
+        <div className="mt-10">
+          <CompetitionPoweredNote />
         </div>
       </section>
     </>
