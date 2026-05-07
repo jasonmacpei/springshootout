@@ -9,6 +9,7 @@
 - Added a live scoreboard fallback for game pages while the Hoops Scorebook box score endpoint is still deploying.
 - Updated the live results board to poll no-store snapshots and tick running game clocks locally between polls.
 - Updated recent final cards to match the live game card layout with final status and aligned team scores.
+- Fixed final box score parsing for the deployed Hoops Scorebook payload shape.
 
 ## [0.1.1] - 2026-05-07
 

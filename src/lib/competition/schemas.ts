@@ -142,6 +142,7 @@ export const gameDetailSchema = z.object({
         clockSecondsRemaining: z.number().nullable().optional(),
         points: z.number().nullable().optional(),
         teamName: z.string().nullable().optional(),
+        playerName: z.string().nullable().optional(),
         playerFirstName: z.string().nullable().optional(),
         playerLastName: z.string().nullable().optional(),
         recordedAt: z.string(),

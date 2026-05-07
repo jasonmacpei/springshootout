@@ -136,6 +136,10 @@ function formatEventLabel(event: GameEvent) {
 }
 
 function formatPlayerName(event: GameEvent) {
+  if (event.playerName) {
+    return event.playerName;
+  }
+
   const name = [event.playerFirstName, event.playerLastName].filter(Boolean).join(" ");
   return name || null;
 }

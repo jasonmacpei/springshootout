@@ -111,6 +111,76 @@ function getScoreboardGameBoxScore(game: CompetitionScoreboardGame) {
   });
 }
 
+function inferGameStatus(game: Record<string, unknown>) {
+  if (typeof game.status === "string") {
+    return game.status;
+  }
+
+  if (game.resultWorkflowStatus === "finalized" || game.resultWorkflowStatus === "approved") {
+    return "final";
+  }
+
+  return "scheduled";
+}
+
+function getLatestPeriodNumber(game: Record<string, unknown>) {
+  if (typeof game.periodNumber === "number") {
+    return game.periodNumber;
+  }
+
+  if (!Array.isArray(game.periodNumbers)) {
+    return null;
+  }
+
+  const periodNumbers = game.periodNumbers.filter((period): period is number => typeof period === "number");
+  return periodNumbers.at(-1) ?? null;
+}
+
+function normalizeGameDetailPayload(data: unknown) {
+  if (!data || typeof data !== "object") {
+    return data;
+  }
+
+  const payload = data as Record<string, unknown>;
+  const game = payload.game;
+  if (!game || typeof game !== "object") {
+    return data;
+  }
+
+  const normalizedGame = game as Record<string, unknown>;
+  const status = inferGameStatus(normalizedGame);
+  const isFinal = status === "final";
+
+  return {
+    ...payload,
+    game: {
+      ...normalizedGame,
+      status,
+      periodNumber: getLatestPeriodNumber(normalizedGame),
+      clockSecondsRemaining:
+        typeof normalizedGame.clockSecondsRemaining === "number"
+          ? normalizedGame.clockSecondsRemaining
+          : isFinal
+            ? 0
+            : null,
+      clockDecisecondsRemaining:
+        typeof normalizedGame.clockDecisecondsRemaining === "number"
+          ? normalizedGame.clockDecisecondsRemaining
+          : typeof normalizedGame.clockSecondsRemaining === "number"
+            ? normalizedGame.clockSecondsRemaining * 10
+            : isFinal
+              ? 0
+              : null,
+      isClockRunning:
+        typeof normalizedGame.isClockRunning === "boolean"
+          ? normalizedGame.isClockRunning
+          : isFinal
+            ? false
+            : null,
+    },
+  };
+}
+
 export const hoopsscorebookProvider: CompetitionProvider = {
   async listEvents() {
     try {
@@ -282,7 +352,7 @@ export const hoopsscorebookProvider: CompetitionProvider = {
         cache: "no-store",
       });
 
-      return gameDetailSchema.parse(data);
+      return gameDetailSchema.parse(normalizeGameDetailPayload(data));
     } catch (error) {
       if (error instanceof CompetitionRequestError && error.status === 404) {
         const games = await this.getScoreboard({
