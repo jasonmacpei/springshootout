@@ -9,7 +9,7 @@ const navigation: NavigationItem[] = [
   { href: "/", label: "Home" },
   { href: appConfig.registrationUrl, label: "Register" },
   { href: "/schedule", label: "Schedule" },
-  { href: "/results", label: "Results" },
+  { href: "/results", label: "Live Results" },
   { href: "/standings", label: "Standings" },
   { href: "/rules", label: "Rules" },
   { href: "/gyms", label: "Gyms" },
