@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.4] - 2026-05-09
+
+- Added a hidden `/stats` page with division-by-division player leaders for points and fouls.
+- Added tournament stat aggregation from Hoops Scorebook scoreboard discovery and per-game box-score player lines.
+- Added unit coverage for stat aggregation and pre-stat division visibility.
+
 ## [0.2.3] - 2026-05-08
 
 - Added a schedule PDF download from the public schedule page, with one formatted page per division.
