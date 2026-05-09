@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Download } from "lucide-react";
 
 import { CompetitionPoweredNote } from "@/components/marketing/competition-powered-note";
 import { PageHero } from "@/components/marketing/page-hero";
@@ -87,30 +88,40 @@ export default async function SchedulePage({
         description="Browse the full Spring Shootout schedule from Hoops Scorebook, with division filters for faster scanning."
       />
       <section className="mx-auto max-w-6xl px-6 pb-20 lg:px-10">
-        <div className="mt-6 flex flex-wrap items-center gap-2">
-          <Link
-            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-              selectedDivision === "all"
-                ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)]"
-                : "border-[var(--border-strong)] bg-white/60 text-[var(--foreground)] hover:bg-white"
-            }`}
-            href="/schedule"
-          >
-            All divisions
-          </Link>
-          {divisions.map(([id, name]) => (
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                selectedDivision === id
+                selectedDivision === "all"
                   ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)]"
                   : "border-[var(--border-strong)] bg-white/60 text-[var(--foreground)] hover:bg-white"
               }`}
-              href={`/schedule?division=${encodeURIComponent(id)}`}
-              key={id}
+              href="/schedule"
             >
-              {name}
+              All divisions
             </Link>
-          ))}
+            {divisions.map(([id, name]) => (
+              <Link
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  selectedDivision === id
+                    ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)]"
+                    : "border-[var(--border-strong)] bg-white/60 text-[var(--foreground)] hover:bg-white"
+                }`}
+                href={`/schedule?division=${encodeURIComponent(id)}`}
+                key={id}
+              >
+                {name}
+              </Link>
+            ))}
+          </div>
+          <a
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[var(--accent)] bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--accent-foreground)] transition hover:opacity-90"
+            download
+            href="/schedule/pdf"
+          >
+            <Download aria-hidden="true" size={16} strokeWidth={2.25} />
+            Schedule PDF
+          </a>
         </div>
         <div className="mt-4 text-sm font-semibold text-[var(--muted-foreground)]">
           {filteredSchedule.length} {filteredSchedule.length === 1 ? "game" : "games"} · {selectedDivisionName}

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.3] - 2026-05-08
+
+- Added a schedule PDF download from the public schedule page, with one formatted page per division.
+- Added server-side PDF generation and unit coverage for multi-division schedules.
+
 ## [0.2.2] - 2026-05-07
 
 - Removed mock competition fallback from the live Hoops Scorebook adapter so sample Halifax/Charlottetown data cannot appear on production standings.
