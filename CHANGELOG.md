@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.5] - 2026-05-09
+
+- Fixed `/stats` so leaderboard aggregation respects the Hoops Scorebook scoreboard API limit and still discovers finalized games through the results feed.
+- Added regression coverage for stats pages where division metadata comes from result rows and player lines come from box-score payloads.
+
 ## [0.2.4] - 2026-05-09
 
 - Added a hidden `/stats` page with division-by-division player leaders for points and fouls.

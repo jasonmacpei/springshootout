@@ -96,6 +96,7 @@ describe("buildTournamentStatsFeed", () => {
     const feed = buildTournamentStatsFeed({
       eventSlug: "spring-shootout-2026",
       generatedAt: "2026-04-18T20:00:00.000Z",
+      results: [],
       scoreboardGames: [
         scoreboardGame({ divisionId: 1, divisionName: "U13 Boys", gameId: 1, gamePublicId: "game-1" }),
         scoreboardGame({ divisionId: 1, divisionName: "U13 Boys", gameId: 2, gamePublicId: "game-2" }),
@@ -145,6 +146,7 @@ describe("buildTournamentStatsFeed", () => {
     const feed = buildTournamentStatsFeed({
       eventSlug: "spring-shootout-2026",
       generatedAt: "2026-04-18T20:00:00.000Z",
+      results: [],
       scoreboardGames: [],
       standings,
       boxScores: [],
@@ -158,5 +160,44 @@ describe("buildTournamentStatsFeed", () => {
       pointsLeaders: [],
       foulsLeaders: [],
     });
+  });
+
+  it("can seed divisions from result rows when scoreboard metadata is incomplete", () => {
+    const feed = buildTournamentStatsFeed({
+      eventSlug: "spring-shootout-2026",
+      generatedAt: "2026-04-18T20:00:00.000Z",
+      results: [
+        {
+          gamePublicId: "game-1",
+          gameStatus: "final",
+          resultWorkflowStatus: "finalized",
+          scheduledAt: "2026-04-18T18:00:00.000Z",
+          venue: "Chi-Wan Court 1",
+          eventSlug: "spring-shootout-2026",
+          eventName: "Spring Shootout 2026",
+          divisionId: 3,
+          divisionName: "U14 Girls",
+          poolId: 7,
+          poolName: "Pool A",
+          stageName: "Pool Play",
+          teamName: "Island Aces",
+          opponentTeamName: "Moncton Storm",
+          result: "win",
+          score: 54,
+          opponentScore: 48,
+        },
+      ],
+      scoreboardGames: [],
+      standings: [],
+      boxScores: [boxScore({ divisionId: 3, divisionName: "U14 Girls", gameId: 1, gamePublicId: "game-1", points: 18, fouls: 4 })],
+    });
+
+    expect(feed.divisions[0]).toMatchObject({
+      divisionName: "U14 Girls",
+      playerCount: 1,
+      statGameCount: 1,
+    });
+    expect(feed.divisions[0]?.pointsLeaders[0]?.points).toBe(18);
+    expect(feed.divisions[0]?.foulsLeaders[0]?.fouls).toBe(4);
   });
 });

@@ -1,6 +1,7 @@
 import { getCompetitionProvider } from "@/lib/competition";
 import type {
   CompetitionGameDetail,
+  CompetitionResult,
   CompetitionScoreboardGame,
   CompetitionStanding,
 } from "@/lib/competition/schemas";
@@ -176,12 +177,14 @@ export function buildTournamentStatsFeed({
   boxScores,
   eventSlug,
   generatedAt = new Date().toISOString(),
+  results,
   scoreboardGames,
   standings,
 }: {
   boxScores: CompetitionGameDetail[];
   eventSlug: string;
   generatedAt?: string;
+  results: CompetitionResult[];
   scoreboardGames: CompetitionScoreboardGame[];
   standings: CompetitionStanding[];
 }): TournamentStatsFeed {
@@ -193,6 +196,10 @@ export function buildTournamentStatsFeed({
 
   scoreboardGames.forEach((game) => {
     ensureDivision(divisions, game);
+  });
+
+  results.forEach((result) => {
+    ensureDivision(divisions, result);
   });
 
   boxScores.forEach((boxScore) => {
@@ -277,25 +284,46 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, task: (item: 
   return results;
 }
 
+function getGamePublicIds({
+  results,
+  scoreboardGames,
+}: {
+  results: CompetitionResult[];
+  scoreboardGames: CompetitionScoreboardGame[];
+}) {
+  return Array.from(
+    new Set([
+      ...scoreboardGames.map((game) => game.gamePublicId),
+      ...results.map((result) => result.gamePublicId),
+    ]),
+  );
+}
+
 export async function getTournamentStatsFeed(): Promise<TournamentStatsFeed> {
   const provider = getCompetitionProvider();
   const eventSlug = await getCompetitionEventSlugByLocalSlug();
-  const [scoreboardGames, standings] = await Promise.all([
+  const [scoreboardGames, standings, results] = await Promise.all([
     provider.getScoreboard({
       event: eventSlug,
       status: "all",
-      limit: 500,
+      limit: 100,
       noStore: true,
     }),
     provider.getStandings({
       event: eventSlug,
       limit: 500,
     }),
+    provider.getResults({
+      event: eventSlug,
+      workflow: "all",
+      limit: 100,
+    }),
   ]);
+  const gamePublicIds = getGamePublicIds({ results, scoreboardGames });
 
-  const boxScoreResults = await mapWithConcurrency(scoreboardGames, 6, async (game) => {
+  const boxScoreResults = await mapWithConcurrency(gamePublicIds, 6, async (gamePublicId) => {
     try {
-      return await provider.getGameBoxScore(game.gamePublicId);
+      return await provider.getGameBoxScore(gamePublicId);
     } catch {
       return null;
     }
@@ -304,6 +332,7 @@ export async function getTournamentStatsFeed(): Promise<TournamentStatsFeed> {
   return buildTournamentStatsFeed({
     boxScores: boxScoreResults.filter((boxScore): boxScore is CompetitionGameDetail => Boolean(boxScore)),
     eventSlug,
+    results,
     scoreboardGames,
     standings,
   });
