@@ -1,4 +1,5 @@
 import type { CompetitionPoolRecord, CompetitionScoreboardGame, CompetitionStanding } from "@/lib/competition/schemas";
+import { isCompleteRoundRobinStatus, isRoundRobinGame } from "@/lib/competition/playoff-presentation";
 
 export type StandingRow = Pick<
   CompetitionStanding,
@@ -35,18 +36,43 @@ function getPoolKey(row: Pick<StandingRow, "divisionId" | "divisionName" | "pool
   return [row.divisionId ?? row.divisionName ?? "Division", row.poolId ?? row.poolName ?? "Pool"].join(":");
 }
 
+function getWinPct(row: Pick<StandingRow, "gamesPlayed" | "ties" | "wins">) {
+  if (row.gamesPlayed === 0) {
+    return 0;
+  }
+
+  return (row.wins + row.ties * 0.5) / row.gamesPlayed;
+}
+
+function updateCompletedGame(row: StandingRowWithOrder, pointsFor: number, pointsAgainst: number) {
+  row.gamesPlayed += 1;
+  row.pointsFor += pointsFor;
+  row.pointsAgainst += pointsAgainst;
+  row.pointDifferential += pointsFor - pointsAgainst;
+
+  if (pointsFor > pointsAgainst) {
+    row.wins += 1;
+  } else if (pointsFor < pointsAgainst) {
+    row.losses += 1;
+  } else {
+    row.ties += 1;
+  }
+}
+
 export function buildScheduleStandings(schedule: CompetitionScoreboardGame[]): StandingRow[] {
   const rows = new Map<string, StandingRowWithOrder>();
 
   schedule.forEach((game, index) => {
-    if (!game.divisionId || !game.poolId || !game.divisionName || !game.poolName) {
+    if (!isRoundRobinGame(game) || !game.divisionId || !game.poolId || !game.divisionName || !game.poolName) {
       return;
     }
 
-    [
-      { id: game.homeTeamPublicId, name: game.homeTeamName },
-      { id: game.awayTeamPublicId, name: game.awayTeamName },
-    ].forEach((team) => {
+    const teams = [
+      { id: game.homeTeamPublicId, name: game.homeTeamName, score: game.homeScore, opponentScore: game.awayScore },
+      { id: game.awayTeamPublicId, name: game.awayTeamName, score: game.awayScore, opponentScore: game.homeScore },
+    ];
+
+    teams.forEach((team) => {
       if (!team.id || !team.name) {
         return;
       }
@@ -76,34 +102,84 @@ export function buildScheduleStandings(schedule: CompetitionScoreboardGame[]): S
         });
       }
     });
+
+    if (
+      isCompleteRoundRobinStatus(game.status) &&
+      typeof game.homeScore === "number" &&
+      typeof game.awayScore === "number"
+    ) {
+      teams.forEach((team) => {
+        if (!team.id || typeof team.score !== "number" || typeof team.opponentScore !== "number") {
+          return;
+        }
+
+        const row = rows.get(`${game.divisionId}:${game.poolId}:${team.id}`);
+
+        if (row) {
+          updateCompletedGame(row, team.score, team.opponentScore);
+        }
+      });
+    }
   });
 
-  return rankRows(Array.from(rows.values()), new Set());
+  const sortedRows = Array.from(rows.values()).sort(
+    (a, b) =>
+      getWinPct(b) - getWinPct(a) ||
+      b.wins - a.wins ||
+      b.pointDifferential - a.pointDifferential ||
+      b.pointsFor - a.pointsFor ||
+      a.sourceOrder - b.sourceOrder ||
+      a.teamName.localeCompare(b.teamName),
+  );
+
+  return rankRows(
+    sortedRows.map((row, index) => ({ ...row, rank: index + 1, sourceOrder: index })),
+    new Set(),
+  );
 }
 
 export function buildPoolStandings(pools: CompetitionPoolRecord[]): StandingRow[] {
-  return pools.flatMap((pool, poolIndex) =>
-    pool.teams.map((team, teamIndex) => ({
-      eventSlug: pool.eventSlug,
-      eventName: pool.eventName,
-      divisionId: pool.divisionId,
-      divisionName: pool.divisionName,
-      poolId: pool.poolId,
-      poolName: pool.poolName,
-      stageName: pool.stageName,
-      teamPublicId: team.teamPublicId,
-      teamName: team.teamName,
-      rank: team.rank || teamIndex + 1,
-      wins: team.wins,
-      losses: team.losses,
-      ties: team.ties,
-      gamesPlayed: team.gamesPlayed,
-      pointsFor: team.pointsFor,
-      pointsAgainst: team.pointsAgainst,
-      pointDifferential: team.pointDifferential,
-      sourceOrder: poolIndex * 1000 + teamIndex,
-    })),
-  );
+  return pools
+    .filter((pool) => isRoundRobinGame(pool))
+    .flatMap((pool, poolIndex) =>
+      pool.teams.map((team, teamIndex) => ({
+        eventSlug: pool.eventSlug,
+        eventName: pool.eventName,
+        divisionId: pool.divisionId,
+        divisionName: pool.divisionName,
+        poolId: pool.poolId,
+        poolName: pool.poolName,
+        stageName: pool.stageName,
+        teamPublicId: team.teamPublicId,
+        teamName: team.teamName,
+        rank: team.rank || teamIndex + 1,
+        wins: team.wins,
+        losses: team.losses,
+        ties: team.ties,
+        gamesPlayed: team.gamesPlayed,
+        pointsFor: team.pointsFor,
+        pointsAgainst: team.pointsAgainst,
+        pointDifferential: team.pointDifferential,
+        sourceOrder: poolIndex * 1000 + teamIndex,
+      })),
+    );
+}
+
+function isRoundRobinStanding(standing: CompetitionStanding) {
+  const stageName = standing.stageName?.trim().toLowerCase() ?? "";
+
+  if (
+    stageName.includes("playoff") ||
+    stageName.includes("semi") ||
+    stageName.includes("cross") ||
+    stageName.includes("championship") ||
+    stageName.includes("final") ||
+    stageName.includes("place")
+  ) {
+    return false;
+  }
+
+  return Boolean(standing.poolId || standing.poolName || stageName.includes("pool") || stageName.includes("round robin"));
 }
 
 export function mergeStandings({
@@ -117,7 +193,10 @@ export function mergeStandings({
 }): StandingRow[] {
   const rows = new Map<string, StandingRowWithOrder>();
 
-  [...buildPoolStandings(pools), ...buildScheduleStandings(schedule)].forEach((row, index) => {
+  const computedScheduleRows = buildScheduleStandings(schedule);
+  const computedSchedulePoolKeys = new Set(computedScheduleRows.map((row) => getPoolKey(row)));
+
+  buildPoolStandings(pools).forEach((row, index) => {
     const key = getStandingKey(row);
 
     if (!rows.has(key)) {
@@ -125,10 +204,23 @@ export function mergeStandings({
     }
   });
 
+  computedScheduleRows.forEach((row, index) => {
+    rows.set(getStandingKey(row), { ...row, sourceOrder: index });
+  });
+
   const standingsKeys = new Set<string>();
 
   standings.forEach((standing, index) => {
+    if (!isRoundRobinStanding(standing)) {
+      return;
+    }
+
     const key = getStandingKey(standing);
+
+    if (computedSchedulePoolKeys.has(getPoolKey(standing))) {
+      return;
+    }
+
     standingsKeys.add(key);
     rows.set(key, {
       ...standing,
@@ -224,9 +316,5 @@ export function groupStandings(standings: StandingRow[]) {
 }
 
 export function formatWinPct(row: StandingRow) {
-  if (row.gamesPlayed === 0) {
-    return "0.000";
-  }
-
-  return ((row.wins + row.ties * 0.5) / row.gamesPlayed).toFixed(3);
+  return getWinPct(row).toFixed(3);
 }

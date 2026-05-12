@@ -1,4 +1,5 @@
 import { CompetitionPoweredNote } from "@/components/marketing/competition-powered-note";
+import { PlayoffBracketSection } from "@/components/competition/playoff-bracket-section";
 import { PageHero } from "@/components/marketing/page-hero";
 import { EmptyState } from "@/components/states/empty-state";
 import { Card } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { getCompetitionEventSlugByLocalSlug } from "@/lib/db/queries/content";
 export default async function StandingsPage() {
   const provider = getCompetitionProvider();
   const competitionEventSlug = await getCompetitionEventSlugByLocalSlug();
-  const [standings, pools, schedule] = await Promise.all([
+  const [standings, pools, schedule, playoffBrackets] = await Promise.all([
     provider.getStandings({
       event: competitionEventSlug,
       limit: 500,
@@ -22,6 +23,11 @@ export default async function StandingsPage() {
       event: competitionEventSlug,
       status: "all",
       limit: 500,
+    }),
+    provider.getPlayoffBrackets({
+      event: competitionEventSlug,
+      workflow: "approved",
+      limit: 100,
     }),
   ]);
 
@@ -87,6 +93,7 @@ export default async function StandingsPage() {
             title="No standings available yet"
           />
         )}
+        <PlayoffBracketSection brackets={playoffBrackets} schedule={schedule} />
         <div className="mt-8">
           <CompetitionPoweredNote />
         </div>

@@ -7,12 +7,19 @@ export const runtime = "nodejs";
 export async function GET() {
   const provider = getCompetitionProvider();
   const competitionEventSlug = await getCompetitionEventSlugByLocalSlug();
-  const schedule = await provider.getSchedule({
-    event: competitionEventSlug,
-    status: "all",
-    limit: 500,
-  });
-  const pdf = buildSchedulePdf(schedule);
+  const [schedule, playoffBrackets] = await Promise.all([
+    provider.getSchedule({
+      event: competitionEventSlug,
+      status: "all",
+      limit: 500,
+    }),
+    provider.getPlayoffBrackets({
+      event: competitionEventSlug,
+      workflow: "approved",
+      limit: 100,
+    }),
+  ]);
+  const pdf = buildSchedulePdf(schedule, { playoffBrackets });
 
   return new Response(new Uint8Array(pdf), {
     headers: {

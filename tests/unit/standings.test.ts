@@ -144,4 +144,73 @@ describe("mergeStandings", () => {
       "Moncton Storm",
     ]);
   });
+
+  it("keeps playoff results out of round-robin pool standings", () => {
+    const rows = mergeStandings({
+      pools: [basePool],
+      schedule: [
+        {
+          ...scheduleOnlyGame,
+          divisionId: 1,
+          divisionName: "U13 Girls",
+          poolId: 10,
+          poolName: "Pool A",
+          homeTeamPublicId: "team-a",
+          homeTeamName: "Island Aces",
+          homeScore: 30,
+          awayTeamPublicId: "team-b",
+          awayTeamName: "Riverview Royals",
+          awayScore: 25,
+          status: "final",
+          stageName: "Pool Play",
+          stageType: "pool_play",
+          stageScope: "pool",
+        },
+        {
+          ...scheduleOnlyGame,
+          gameId: 99,
+          gamePublicId: "playoff-99",
+          divisionId: 1,
+          divisionName: "U13 Girls",
+          poolId: 10,
+          poolName: "Pool A",
+          homeTeamPublicId: "team-a",
+          homeTeamName: "Island Aces",
+          homeScore: 40,
+          awayTeamPublicId: "team-c",
+          awayTeamName: "Summerside Spartans",
+          awayScore: 35,
+          status: "final",
+          stageName: "Championship",
+          stageType: "playoff_bracket",
+          stageScope: "division",
+        },
+      ],
+      standings: [
+        ...resultStandings,
+        {
+          ...resultStandings[0],
+          gamesPlayed: 2,
+          wins: 2,
+          pointsFor: 70,
+          pointsAgainst: 60,
+          pointDifferential: 10,
+          stageName: "Championship",
+        },
+      ],
+    });
+
+    expect(rows.find((row) => row.teamPublicId === "team-a")).toMatchObject({
+      gamesPlayed: 1,
+      wins: 1,
+      pointsFor: 30,
+      pointsAgainst: 25,
+    });
+    expect(rows.find((row) => row.teamPublicId === "team-c")).toMatchObject({
+      gamesPlayed: 0,
+      wins: 0,
+      pointsFor: 0,
+      pointsAgainst: 0,
+    });
+  });
 });

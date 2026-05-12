@@ -1,4 +1,9 @@
-import type { CompetitionScoreboardGame } from "@/lib/competition/schemas";
+import type { CompetitionPlayoffBracket, CompetitionScoreboardGame } from "@/lib/competition/schemas";
+import {
+  buildPlayoffSlotLabelMap,
+  formatPublicMatchup,
+  shouldHoldPlayoffAssignment,
+} from "@/lib/competition/playoff-presentation";
 
 const tournamentTimeZone = "America/Halifax";
 
@@ -16,6 +21,7 @@ type PdfColor = readonly [number, number, number];
 type SchedulePdfOptions = {
   eventName?: string;
   generatedAt?: Date;
+  playoffBrackets?: CompetitionPlayoffBracket[];
 };
 
 type DivisionSchedule = {
@@ -53,16 +59,6 @@ function formatGeneratedAt(date: Date) {
     timeStyle: "short",
     timeZone: tournamentTimeZone,
   }).format(date);
-}
-
-function formatMatchup(game: CompetitionScoreboardGame) {
-  if (game.gameName) {
-    return game.gameName;
-  }
-
-  const home = game.homeTeamName || game.homeSlotLabel || "Home TBD";
-  const away = game.awayTeamName || game.awaySlotLabel || "Away TBD";
-  return `${home} vs ${away}`;
 }
 
 function formatVenue(game: CompetitionScoreboardGame) {
@@ -181,7 +177,15 @@ function emptySchedulePage(eventName: string, generatedAt: Date) {
   return { width: pageWidth, height: pageHeight, content };
 }
 
-function divisionPage(division: DivisionSchedule, eventName: string, generatedAt: Date, pageNumber: number, pageCount: number) {
+function divisionPage(
+  division: DivisionSchedule,
+  eventName: string,
+  generatedAt: Date,
+  pageNumber: number,
+  pageCount: number,
+  allGames: CompetitionScoreboardGame[],
+  playoffBrackets: CompetitionPlayoffBracket[],
+) {
   const tableTop = 116;
   const footerY = 580;
   const usableWidth = pageWidth - marginX * 2;
@@ -195,6 +199,7 @@ function divisionPage(division: DivisionSchedule, eventName: string, generatedAt
   const bodyFontSize = rowHeight < 12 ? 6.2 : rowHeight < 15 ? 7.2 : 8.2;
   const secondaryFontSize = Math.max(5.8, bodyFontSize - 1.1);
   const matchupWidth = columnCount === 2 ? columnWidth - 160 : columnWidth - 270;
+  const playoffSlotLabelMap = buildPlayoffSlotLabelMap(playoffBrackets);
 
   let content = rect(0, 0, pageWidth, 10, accent);
   content += text({ value: eventName, x: marginX, y: 42, size: 22, bold: true });
@@ -246,7 +251,18 @@ function divisionPage(division: DivisionSchedule, eventName: string, generatedAt
     content += text({ value: formatScheduleDate(game.scheduledAt), x: x + 8, y: y + bodyFontSize + 3, size: bodyFontSize, bold: true });
     content += text({ value: formatScheduleTime(game.scheduledAt), x: x + 8, y: y + bodyFontSize * 2 + 5, size: secondaryFontSize, color: muted });
 
-    wrapText(formatMatchup(game), matchupWidth, bodyFontSize, rowHeight < 13 ? 1 : 2).forEach((lineValue, lineIndex) => {
+    const holdAssignment = shouldHoldPlayoffAssignment({
+      game,
+      schedule: allGames,
+      slotLabelMap: playoffSlotLabelMap,
+    });
+    const matchup = formatPublicMatchup({
+      game,
+      holdAssignment,
+      slotLabelMap: playoffSlotLabelMap,
+    });
+
+    wrapText(matchup, matchupWidth, bodyFontSize, rowHeight < 13 ? 1 : 2).forEach((lineValue, lineIndex) => {
       content += text({
         value: lineValue,
         x: x + 76,
@@ -332,9 +348,20 @@ export function buildSchedulePdf(games: CompetitionScoreboardGame[], options: Sc
   const divisions = groupScheduleByDivision(sortedGames);
   const eventName = options.eventName ?? sortedGames[0]?.eventName ?? "Spring Shootout";
   const generatedAt = options.generatedAt ?? new Date();
+  const playoffBrackets = options.playoffBrackets ?? [];
   const pages =
     divisions.length > 0
-      ? divisions.map((division, index) => divisionPage(division, eventName, generatedAt, index + 1, divisions.length))
+      ? divisions.map((division, index) =>
+          divisionPage(
+            division,
+            eventName,
+            generatedAt,
+            index + 1,
+            divisions.length,
+            sortedGames,
+            playoffBrackets,
+          ),
+        )
       : [emptySchedulePage(eventName, generatedAt)];
 
   return buildPdfDocument(pages);

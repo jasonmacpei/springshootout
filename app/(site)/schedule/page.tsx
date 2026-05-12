@@ -6,6 +6,11 @@ import { PageHero } from "@/components/marketing/page-hero";
 import { EmptyState } from "@/components/states/empty-state";
 import { Card } from "@/components/ui/card";
 import { getCompetitionProvider } from "@/lib/competition";
+import {
+  buildPlayoffSlotLabelMap,
+  formatPublicMatchup,
+  shouldHoldPlayoffAssignment,
+} from "@/lib/competition/playoff-presentation";
 import { getCompetitionEventSlugByLocalSlug } from "@/lib/db/queries/content";
 
 const tournamentTimeZone = "America/Halifax";
@@ -31,22 +36,6 @@ function formatStatus(status: string) {
   return status.replaceAll("_", " ");
 }
 
-function formatMatchup(game: {
-  gameName?: string | null;
-  homeTeamName?: string | null;
-  homeSlotLabel?: string | null;
-  awayTeamName?: string | null;
-  awaySlotLabel?: string | null;
-}) {
-  if (game.gameName) {
-    return game.gameName;
-  }
-
-  const home = game.homeTeamName || game.homeSlotLabel || "Home TBD";
-  const away = game.awayTeamName || game.awaySlotLabel || "Away TBD";
-  return `${home} vs ${away}`;
-}
-
 export default async function SchedulePage({
   searchParams,
 }: {
@@ -56,13 +45,20 @@ export default async function SchedulePage({
   const selectedDivision = params?.division ?? "all";
   const provider = getCompetitionProvider();
   const competitionEventSlug = await getCompetitionEventSlugByLocalSlug();
-  const schedule = (
-    await provider.getSchedule({
+  const [rawSchedule, playoffBrackets] = await Promise.all([
+    provider.getSchedule({
       event: competitionEventSlug,
       status: "all",
       limit: 500,
-    })
-  ).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+    }),
+    provider.getPlayoffBrackets({
+      event: competitionEventSlug,
+      workflow: "approved",
+      limit: 100,
+    }),
+  ]);
+  const schedule = rawSchedule.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  const playoffSlotLabelMap = buildPlayoffSlotLabelMap(playoffBrackets);
 
   const divisions = Array.from(
     schedule.reduce((map, game) => {
@@ -143,47 +139,91 @@ export default async function SchedulePage({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/10">
-                  {filteredSchedule.map((game) => (
-                    <tr className="align-top hover:bg-black/[0.025]" key={game.gamePublicId}>
-                      <td className="whitespace-nowrap px-4 py-3 font-semibold">{formatScheduleDate(game.scheduledAt)}</td>
-                      <td className="whitespace-nowrap px-4 py-3">{formatScheduleTime(game.scheduledAt)}</td>
-                      <td className="whitespace-nowrap px-4 py-3">{game.divisionName ?? "TBD"}</td>
-                      <td className="px-4 py-3 font-semibold">
-                        <Link className="underline-offset-4 hover:underline" href={`/games/${game.gamePublicId}`}>
-                          {formatMatchup(game)}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">{game.venue ?? "Venue pending"}</td>
-                      <td className="px-4 py-3 text-[var(--muted-foreground)]">{game.poolName ?? game.stageName ?? "TBD"}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
-                        {formatStatus(game.status)}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredSchedule.map((game) => {
+                    const holdAssignment = shouldHoldPlayoffAssignment({
+                      game,
+                      schedule,
+                      slotLabelMap: playoffSlotLabelMap,
+                    });
+                    const matchup = formatPublicMatchup({
+                      game,
+                      holdAssignment,
+                      slotLabelMap: playoffSlotLabelMap,
+                    });
+
+                    return (
+                      <tr className="align-top hover:bg-black/[0.025]" key={game.gamePublicId}>
+                        <td className="whitespace-nowrap px-4 py-3 font-semibold">{formatScheduleDate(game.scheduledAt)}</td>
+                        <td className="whitespace-nowrap px-4 py-3">{formatScheduleTime(game.scheduledAt)}</td>
+                        <td className="whitespace-nowrap px-4 py-3">{game.divisionName ?? "TBD"}</td>
+                        <td className="px-4 py-3 font-semibold">
+                          {holdAssignment ? (
+                            <span>{matchup}</span>
+                          ) : (
+                            <Link className="underline-offset-4 hover:underline" href={`/games/${game.gamePublicId}`}>
+                              {matchup}
+                            </Link>
+                          )}
+                          {holdAssignment ? (
+                            <div className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
+                              Pending pool results
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3">{game.venue ?? "Venue pending"}</td>
+                        <td className="px-4 py-3 text-[var(--muted-foreground)]">{game.poolName ?? game.stageName ?? "TBD"}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
+                          {formatStatus(game.status)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             <div className="divide-y divide-black/10 md:hidden">
-              {filteredSchedule.map((game) => (
-                <div className="grid gap-2 p-4" key={game.gamePublicId}>
-                  <div className="flex items-start justify-between gap-3">
-                    <Link className="font-semibold underline-offset-4 hover:underline" href={`/games/${game.gamePublicId}`}>
-                      {formatMatchup(game)}
-                    </Link>
-                    <div className="shrink-0 text-right text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
-                      {formatStatus(game.status)}
+              {filteredSchedule.map((game) => {
+                const holdAssignment = shouldHoldPlayoffAssignment({
+                  game,
+                  schedule,
+                  slotLabelMap: playoffSlotLabelMap,
+                });
+                const matchup = formatPublicMatchup({
+                  game,
+                  holdAssignment,
+                  slotLabelMap: playoffSlotLabelMap,
+                });
+
+                return (
+                  <div className="grid gap-2 p-4" key={game.gamePublicId}>
+                    <div className="flex items-start justify-between gap-3">
+                      {holdAssignment ? (
+                        <div>
+                          <div className="font-semibold">{matchup}</div>
+                          <div className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
+                            Pending pool results
+                          </div>
+                        </div>
+                      ) : (
+                        <Link className="font-semibold underline-offset-4 hover:underline" href={`/games/${game.gamePublicId}`}>
+                          {matchup}
+                        </Link>
+                      )}
+                      <div className="shrink-0 text-right text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
+                        {formatStatus(game.status)}
+                      </div>
+                    </div>
+                    <div className="text-sm text-[var(--muted-foreground)]">
+                      {formatScheduleDate(game.scheduledAt)} · {formatScheduleTime(game.scheduledAt)} ·{" "}
+                      {game.divisionName ?? "Division TBD"}
+                    </div>
+                    <div className="text-sm text-[var(--muted-foreground)]">
+                      {game.venue ?? "Venue pending"} · {game.poolName ?? game.stageName ?? "Stage TBD"}
                     </div>
                   </div>
-                  <div className="text-sm text-[var(--muted-foreground)]">
-                    {formatScheduleDate(game.scheduledAt)} · {formatScheduleTime(game.scheduledAt)} ·{" "}
-                    {game.divisionName ?? "Division TBD"}
-                  </div>
-                  <div className="text-sm text-[var(--muted-foreground)]">
-                    {game.venue ?? "Venue pending"} · {game.poolName ?? game.stageName ?? "Stage TBD"}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
         ) : (
