@@ -81,6 +81,17 @@ function getGameTitle(game: CompetitionPlayoffGame, index: number) {
   return `Game ${index + 1}`;
 }
 
+function isPlaceholderTeamName(name: string) {
+  const normalizedName = name.toLowerCase();
+
+  return (
+    normalizedName.includes("winner") ||
+    normalizedName.includes("championship") ||
+    normalizedName.includes("final") ||
+    normalizedName.includes("tbd")
+  );
+}
+
 function getFinalGame(games: DisplayGame[]) {
   const championshipGame =
     [...games].reverse().find(({ game, home, away }) => {
@@ -122,18 +133,20 @@ function getWinnerName(game: DisplayGame) {
   }
 
   const winner = game.game.homeScore > game.game.awayScore ? game.home : game.away;
-  const normalizedWinner = winner.toLowerCase();
 
-  if (
-    normalizedWinner.includes("winner") ||
-    normalizedWinner.includes("championship") ||
-    normalizedWinner.includes("final") ||
-    normalizedWinner.includes("tbd")
-  ) {
+  if (isPlaceholderTeamName(winner)) {
     return "Winner";
   }
 
   return winner;
+}
+
+function inferFinalParticipant(currentName: string, sourceGame?: DisplayGame) {
+  if (!sourceGame || !isPlaceholderTeamName(currentName)) {
+    return currentName;
+  }
+
+  return getWinnerName(sourceGame);
 }
 
 function GameNode({
@@ -214,7 +227,15 @@ function BracketPanel({
     return null;
   }
 
-  const champion = getWinnerName(finalGame);
+  const displayedFinalGame: DisplayGame =
+    openingGames.length >= 2
+      ? {
+          ...finalGame,
+          home: inferFinalParticipant(finalGame.home, openingGames[0]),
+          away: inferFinalParticipant(finalGame.away, openingGames[1]),
+        }
+      : finalGame;
+  const champion = getWinnerName(displayedFinalGame);
 
   return (
     <div
@@ -235,11 +256,11 @@ function BracketPanel({
           <div className="grid min-w-[900px] grid-cols-[minmax(280px,1fr)_92px_minmax(280px,1fr)_150px] items-center">
             <div className="grid gap-12">
               {openingGames.slice(0, 2).map((game, index) => (
-                <GameNode game={game} key={game.game.gamePublicId} label={getGameTitle(game.game, index)} />
+                <GameNode game={game} key={game.game.gamePublicId} label={`Semifinal ${index + 1}`} />
               ))}
             </div>
             <BracketConnectors />
-            <GameNode game={finalGame} label="Championship" variant="final" />
+            <GameNode game={displayedFinalGame} label="Championship" variant="final" />
             <div className="relative flex items-center pl-8">
               <div className="absolute left-0 top-1/2 h-px w-8 bg-[var(--surface-strong)]" />
               <div className="rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-foreground)] shadow-[0_10px_28px_rgba(179,92,54,0.20)]">
@@ -267,7 +288,7 @@ function BracketPanel({
               <GameNode
                 game={game}
                 key={game.game.gamePublicId}
-                label={getGameTitle(game.game, index + openingGames.length)}
+                label={placementGames.length === 1 ? "Placement game" : `Placement ${index + 1}`}
               />
             ))}
           </div>
